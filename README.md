@@ -1,1 +1,3 @@
-# template
+# AI
+
+Library for building neural networks.
