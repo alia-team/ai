@@ -1,0 +1,8 @@
+# Build files
+target
+
+# IDE files
+.idea
+.vscode
+
+Cargo.lock
