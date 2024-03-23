@@ -1,5 +1,10 @@
 # Contributing Guidelines
 
+## Golden Rules
+
+### DON'T MERGE, ALWAYS SQUASH AND REBASE
+### CREATE WORK BRANCHES FROM DEVELOP
+
 ## Commits
 
 - **Capitalized**, short but **descriptive** names: `Add foo function`;
@@ -8,10 +13,12 @@
 ## Issues
 
 - **Descriptive** name: `Update README with installation instructions`;
+- Add issues to the kanban.
 
 ## Pull Requests
 
-- Name it **as the related issue**.
+- Name it **as the related issue**;
+- Don't forget to select the develop branch when merging a work branch.
 
 ## Workflow
 
