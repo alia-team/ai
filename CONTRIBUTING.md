@@ -30,4 +30,5 @@
 
 ## Format
 
-**Format your code**! You can enable auto-formatting on save.
+- **Format your code**! You can enable auto-formatting on save;
+- Use **rustfmt** as formatter, the command is `cargo fmt`.
