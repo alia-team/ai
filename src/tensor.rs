@@ -1,10 +1,10 @@
 pub struct Tensor<'a> {
     pub data: &'a [f32],
-    pub dimension: &'a [u8],
+    pub shape: &'a [usize],
 }
 
 impl<'a> Tensor<'a> {
-    pub fn new(data: &'a [f32], dimension: &'a [u8]) -> Tensor<'a> {
-        Tensor { data, dimension }
+    pub fn new(data: &'a [f32], shape: &'a [usize]) -> Tensor<'a> {
+        Tensor { data, shape }
     }
 }
