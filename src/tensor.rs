@@ -1,4 +1,3 @@
-use std::error::Error;
 use std::fmt::{Display, Formatter};
 
 #[derive(Debug, PartialEq)]
@@ -105,5 +104,3 @@ impl Display for TensorError {
         }
     }
 }
-
-impl Error for TensorError {}
