@@ -77,8 +77,10 @@ impl<'a> Tensor<'a> {
         }
 
         let mut flat_index = 0;
-        let mut dimension_stride = 1;
+        let mut dimension_stride = 1; // Tells us how many elements to skip for moving to the next dimension
 
+        // Iterate in reverse to start from the innermost dimension, which simplify dimension
+        // stride calculation
         for (i, &dimension_index) in index.iter().rev().enumerate() {
             let shape_index = self.shape.len() - 1 - i;
 
