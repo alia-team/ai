@@ -63,6 +63,11 @@ impl<'a> Tensor<'a> {
 
         Ok(flat_index)
     }
+
+    pub fn get(&self, index: &[usize]) -> Result<f32, TensorError> {
+        let flat_index = self.flat_index(index)?;
+        Ok(self.data[flat_index])
+    }
 }
 
 impl Display for TensorError {
