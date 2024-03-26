@@ -4,17 +4,28 @@ use ai::tensor::*;
 fn new() {
     let data = [0.0, 1.0, 2.0, 3.0];
     let shape = [2, 2];
-    let tensor = Tensor::new(&data, &shape);
+    let tensor = Tensor::new(&data, &shape).unwrap();
 
     assert_eq!(tensor.data, data);
     assert_eq!(tensor.shape, shape);
+
+    let data = [0.0];
+    let shape = [2, 2];
+    let tensor = Tensor::new(&data, &shape);
+    assert_eq!(
+        tensor,
+        Err(TensorError::ShapeDataMismatch {
+            shape_elements: 4,
+            data_elements: 1
+        })
+    )
 }
 
 #[test]
 fn flat_index() {
     let data = [0.0, 1.0, 2.0, 3.0];
     let shape = [2, 2];
-    let tensor = Tensor::new(&data, &shape);
+    let tensor = Tensor::new(&data, &shape).unwrap();
 
     assert_eq!(tensor.flat_index(&[1, 1]), Ok(3));
     assert_eq!(
@@ -28,7 +39,7 @@ fn flat_index() {
 
     let data = [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0];
     let shape = [2, 2, 2];
-    let tensor = Tensor::new(&data, &shape);
+    let tensor = Tensor::new(&data, &shape).unwrap();
 
     assert_eq!(tensor.flat_index(&[0, 1, 0]), Ok(2));
     assert_eq!(

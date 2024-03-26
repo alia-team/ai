@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::fmt::{Display, Formatter};
 
+#[derive(Debug, PartialEq)]
 pub struct Tensor<'a> {
     pub data: &'a [f32],
     pub shape: &'a [usize],
@@ -17,11 +18,22 @@ pub enum TensorError {
         index: usize,
         bound: usize,
     },
+    ShapeDataMismatch {
+        shape_elements: usize,
+        data_elements: usize,
+    },
 }
 
 impl<'a> Tensor<'a> {
-    pub fn new(data: &'a [f32], shape: &'a [usize]) -> Tensor<'a> {
-        Tensor { data, shape }
+    pub fn new(data: &'a [f32], shape: &'a [usize]) -> Result<Tensor<'a>, TensorError> {
+        let shape_elements = shape.iter().product::<usize>();
+        if shape_elements != data.len() {
+            return Err(TensorError::ShapeDataMismatch {
+                shape_elements,
+                data_elements: data.len(),
+            });
+        }
+        Ok(Tensor { data, shape })
     }
 
     pub fn flat_index(&self, shape: &[usize]) -> Result<usize, TensorError> {
@@ -72,6 +84,17 @@ impl Display for TensorError {
                     formatter,
                     "Index out of bounds: dimension {}, index {}, exceeds bound {}",
                     dimension, index, bound
+                )
+            }
+            TensorError::ShapeDataMismatch {
+                shape_elements,
+                data_elements,
+            } => {
+                write!(
+                    formatter,
+                    "Shape-data mismatch: expected shape to represent {} elements, but data contains {} elements.",
+                    shape_elements,
+                    data_elements
                 )
             }
         }
