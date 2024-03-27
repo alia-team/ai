@@ -1,4 +1,5 @@
 use crate::tensor::Tensor;
+use std::fmt::{Display, Formatter};
 
 /// Represents a neuron with its parameters.
 ///
@@ -62,5 +63,15 @@ impl<'a> Neuron<'a> {
         }
 
         Ok(self.weights.as_ref().unwrap().dot(inputs).unwrap() + self.bias)
+    }
+}
+
+impl Display for NeuronError {
+    fn fmt(&self, formatter: &mut Formatter) -> std::fmt::Result {
+        match *self {
+            NeuronError::WeightsNotInitialized => {
+                write!(formatter, "Weights are not initialized.")
+            }
+        }
     }
 }
