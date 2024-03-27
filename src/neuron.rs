@@ -12,6 +12,10 @@ pub struct Neuron<'a> {
     pub bias: f32,
 }
 
+/// Errors that can occur when working with `Neuron`.
+///
+/// For now, this enum defines the error that can result when doing a forward
+/// pass with weights that are not initialized.
 #[derive(Debug, PartialEq)]
 pub enum NeuronError {
     WeightsNotInitialized,
