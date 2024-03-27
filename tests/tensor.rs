@@ -77,3 +77,24 @@ fn get() {
         })
     );
 }
+
+#[test]
+fn dot() {
+    let a = Tensor::new(&[1.0, 2.0, 3.0], &[3]).unwrap();
+    let b = Tensor::new(&[4.0, 5.0, 6.0], &[3]).unwrap();
+    assert_eq!(a.dot(&b), Ok(32.0));
+
+    let a = Tensor::new(&[1.0, 2.0, 3.0, 4.0], &[2, 2]).unwrap();
+    let b = Tensor::new(&[1.0, 2.0, 3.0, 4.0], &[2, 2]).unwrap();
+    assert_eq!(a.dot(&b), Ok(30.0));
+
+    let a = Tensor::new(&[0.0], &[1]).unwrap();
+    let b = Tensor::new(&[0.0, 0.0], &[2]).unwrap();
+    assert_eq!(
+        a.dot(&b),
+        Err(TensorError::ShapeMismatch {
+            a: a.shape,
+            b: b.shape
+        })
+    );
+}
