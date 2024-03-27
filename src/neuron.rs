@@ -2,9 +2,9 @@ use crate::tensor::Tensor;
 
 /// Represents a neuron with its parameters.
 ///
-/// Weights are an option because since the number of weights depends on the number of inputs, we
-/// can't define the weights at neuron's creation. Weights are initialized during the first forward
-/// pass.
+/// Weights are an option because since the number of weights depends on the
+/// number of inputs, we can't define the weights at neuron's creation.
+/// Weights are initialized during the first forward pass.
 #[derive(Debug, PartialEq)]
 pub struct Neuron<'a> {
     pub weights: Option<Tensor<'a>>,
@@ -14,8 +14,9 @@ pub struct Neuron<'a> {
 impl<'a> Neuron<'a> {
     /// Creates a new `Neuron` instance from a bias.
     ///
-    /// Since the number of weights depends on the number of inputs, we can't define the weights at
-    /// neuron's creation. Weights are initialized during the first forward pass.
+    /// Since the number of weights depends on the number of inputs, we can't
+    /// define the weights at neuron's creation.
+    /// Weights are initialized during the first forward pass.
     ///
     /// # Argument
     ///
