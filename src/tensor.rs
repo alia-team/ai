@@ -2,9 +2,11 @@ use std::fmt::{Display, Formatter};
 
 /// Represents a tensor with data and shape.
 ///
-/// A tensor is a generalization of vectors and matrices to potentially higher dimensions.
-/// The `Tensor` struct in this library holds a reference to its data (a slice of `f32` values)
-/// and its shape (a slice of `usize` values indicating the size of each dimension).
+/// A tensor is a generalization of vectors and matrices to potentially higher
+/// dimensions.
+/// The `Tensor` struct in this library holds a reference to its data (a slice
+/// of `f32` values) and its shape (a slice of `usize` values indicating the
+/// size of each dimension).
 #[derive(Debug, PartialEq)]
 pub struct Tensor<'a> {
     pub data: &'a [f32],
@@ -13,8 +15,9 @@ pub struct Tensor<'a> {
 
 /// Errors that can occur when working with `Tensor`.
 ///
-/// This enum defines various error types that can result from operations on `Tensor` instances,
-/// such as mismatches in dimensions or indices out of bounds.
+/// This enum defines various error types that can result from operations on
+/// `Tensor` instances, such as mismatches in dimensions or indices out of
+/// bounds.
 #[derive(Debug, PartialEq)]
 pub enum TensorError<'a> {
     DimensionMismatch {
@@ -39,8 +42,8 @@ pub enum TensorError<'a> {
 impl<'a> Tensor<'a> {
     /// Creates a new `Tensor` instance from data and shape slices.
     ///
-    /// Validates that the total number of elements indicated by the shape matches
-    /// the number of elements in the data slice.
+    /// Validates that the total number of elements indicated by the shape
+    /// matches the number of elements in the data slice.
     ///
     /// # Arguments
     ///
@@ -70,8 +73,8 @@ impl<'a> Tensor<'a> {
     ///
     /// # Returns
     ///
-    /// An `Ok(usize)` representing the flat index, or a `TensorError` if the index is out of bounds
-    /// or if there is a dimension mismatch.
+    /// An `Ok(usize)` representing the flat index, or a `TensorError` if the
+    /// index is out of bounds or if there is a dimension mismatch.
     pub fn flat_index(&self, index: &[usize]) -> Result<usize, TensorError<'a>> {
         if index.len() != self.shape.len() {
             return Err(TensorError::DimensionMismatch {
@@ -81,10 +84,11 @@ impl<'a> Tensor<'a> {
         }
 
         let mut flat_index = 0;
-        let mut dimension_stride = 1; // Tells us how many elements to skip for moving to the next dimension
+        let mut dimension_stride = 1; // Tells us how many elements to skip for
+                                      // moving to the next dimension
 
-        // Iterate in reverse to start from the innermost dimension, which simplify dimension
-        // stride calculation
+        // Iterate in reverse to start from the innermost dimension, which
+        // simplify dimension stride calculation
         for (i, &dimension_index) in index.iter().rev().enumerate() {
             let shape_index = self.shape.len() - 1 - i;
 
@@ -110,8 +114,8 @@ impl<'a> Tensor<'a> {
     ///
     /// # Returns
     ///
-    /// An `Ok(f32)` containing the value at the given index, or a `TensorError` if the index is out of bounds
-    /// or if there is a dimension mismatch.
+    /// An `Ok(f32)` containing the value at the given index, or a `TensorError`
+    /// if the index is out of bounds or if there is a dimension mismatch.
     pub fn get(&self, index: &[usize]) -> Result<f32, TensorError<'a>> {
         let flat_index = self.flat_index(index)?;
         Ok(self.data[flat_index])
@@ -120,18 +124,22 @@ impl<'a> Tensor<'a> {
     /// Computes the dot product of the current tensor with another tensor.
     ///
     /// The dot product is calculated as the sum of element-wise multiplications
-    /// between the two tensors. This operation requires that both tensors have
-    /// the exact same shape. If the shapes do not match, a `TensorError::ShapeMismatch`
-    /// error is returned.
+    /// between the two tensors.
+    /// This operation requires that both tensors have the exact same shape.
+    /// If the shapes do not match, a `TensorError::ShapeMismatch` error is
+    /// returned.
     ///
     /// # Arguments
     ///
-    /// * `tensor` - A reference to the `Tensor` instance to be dot-multiplied with the current tensor.
+    /// * `tensor` - A reference to the `Tensor` instance to be dot-multiplied
+    /// with the current tensor.
     ///
     /// # Returns
     ///
-    /// An `Ok(f32)` containing the dot product of the two tensors if their shapes match.
-    /// Otherwise, returns a `TensorError::ShapeMismatch` error detailing the mismatched shapes.
+    /// An `Ok(f32)` containing the dot product of the two tensors if their
+    /// shapes match.
+    /// Otherwise, returns a `TensorError::ShapeMismatch` error detailing the
+    /// mismatched shapes.
     pub fn dot(&self, tensor: &Tensor<'a>) -> Result<f32, TensorError<'a>> {
         if self.shape != tensor.shape {
             return Err(TensorError::ShapeMismatch {
