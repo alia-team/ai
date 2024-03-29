@@ -7,8 +7,8 @@ use std::fmt::{Display, Formatter};
 /// number of inputs, we can't define the weights at neuron's creation.
 /// Weights are initialized during the first forward pass.
 #[derive(Debug, PartialEq)]
-pub struct Neuron<'a> {
-    pub weights: Option<Tensor<'a>>,
+pub struct Neuron {
+    pub weights: Option<Tensor>,
     pub bias: f32,
 }
 
@@ -21,7 +21,7 @@ pub enum NeuronError {
     WeightsNotInitialized,
 }
 
-impl<'a> Neuron<'a> {
+impl Neuron {
     /// Creates a new `Neuron` instance from a bias.
     ///
     /// Since the number of weights depends on the number of inputs, we can't
@@ -35,7 +35,7 @@ impl<'a> Neuron<'a> {
     /// # Returns
     ///
     /// A `Neuron` instance.
-    pub fn new(bias: f32) -> Neuron<'a> {
+    pub fn new(bias: f32) -> Neuron {
         Neuron {
             weights: None,
             bias,
@@ -61,7 +61,7 @@ impl<'a> Neuron<'a> {
     /// An `Ok(f32)` containing the result of the weighted sum plus the bias if
     /// the weights are initialized.
     /// Otherwise, returns a `NeuronError::WeightsNotInitialized` error.
-    pub fn forward(&self, inputs: &Tensor<'a>) -> Result<f32, NeuronError> {
+    pub fn forward(&self, inputs: &Tensor) -> Result<f32, NeuronError> {
         if self.weights.is_none() {
             return Err(NeuronError::WeightsNotInitialized);
         }
@@ -72,7 +72,7 @@ impl<'a> Neuron<'a> {
 
 impl Display for NeuronError {
     fn fmt(&self, formatter: &mut Formatter) -> std::fmt::Result {
-        match *self {
+        match self {
             NeuronError::WeightsNotInitialized => {
                 write!(formatter, "Weights are not initialized.")
             }

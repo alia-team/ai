@@ -1,6 +1,13 @@
 use ai::activation;
 
 #[test]
+fn binary_step() {
+    assert_eq!(activation::binary_step(-1.0), 0.0);
+    assert_eq!(activation::binary_step(0.0), 1.0);
+    assert_eq!(activation::binary_step(1.0), 1.0);
+}
+
+#[test]
 fn logistic() {
     assert_eq!(activation::logistic(1.0), 0.7310586);
     assert_eq!(activation::logistic(10.0), 0.9999546);

@@ -4,6 +4,14 @@ use std::f32::consts::E;
 /// argument and return an `f32`.
 pub type Activation = fn(f32) -> f32;
 
+pub fn binary_step(x: f32) -> f32 {
+    if x >= 0.0 {
+        1.0
+    } else {
+        0.0
+    }
+}
+
 /// Implements the logistic (sigmoid) activation function.
 ///
 /// This function is widely used in neural networks, particularly in binary
