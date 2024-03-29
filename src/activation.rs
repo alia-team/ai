@@ -4,6 +4,21 @@ use std::f32::consts::E;
 /// argument and return an `f32`.
 pub type Activation = fn(f32) -> f32;
 
+/// Implements the binary step activation function.
+///
+/// It is useful for binary classification tasks where an output needs to be
+/// decisively one class or another.
+/// However, its use is limited in multi-layer networks due to its
+/// non-differentiability at `0`, which prevents gradient-based learning methods
+/// from working.
+///
+/// # Arguments
+///
+/// * `x` - The input value to the binary step function.
+///
+/// # Returns
+///
+/// `1.0` if `x` is greater than or equal to `0`, else `0.0`.
 pub fn binary_step(x: f32) -> f32 {
     if x >= 0.0 {
         1.0
