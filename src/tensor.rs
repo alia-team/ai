@@ -8,9 +8,9 @@ use std::fmt::{Display, Formatter};
 /// of `f32` values) and its shape (a slice of `usize` values indicating the
 /// size of each dimension).
 #[derive(Debug, PartialEq)]
-pub struct Tensor<'a> {
-    pub data: &'a [f32],
-    pub shape: &'a [usize],
+pub struct Tensor {
+    pub data: Vec<f32>,
+    pub shape: Vec<usize>,
 }
 
 /// Errors that can occur when working with `Tensor`.
@@ -19,7 +19,7 @@ pub struct Tensor<'a> {
 /// `Tensor` instances, such as mismatches in dimensions or indices out of
 /// bounds.
 #[derive(Debug, PartialEq)]
-pub enum TensorError<'a> {
+pub enum TensorError {
     DimensionMismatch {
         expected: usize,
         found: usize,
@@ -34,12 +34,12 @@ pub enum TensorError<'a> {
         data_elements: usize,
     },
     ShapeMismatch {
-        a: &'a [usize],
-        b: &'a [usize],
+        a: Vec<usize>,
+        b: Vec<usize>,
     },
 }
 
-impl<'a> Tensor<'a> {
+impl Tensor {
     /// Creates a new `Tensor` instance from data and shape slices.
     ///
     /// Validates that the total number of elements indicated by the shape
@@ -47,14 +47,14 @@ impl<'a> Tensor<'a> {
     ///
     /// # Arguments
     ///
-    /// * `data` - A slice of `f32` representing the tensor's data.
-    /// * `shape` - A slice of `usize` representing the tensor's shape.
+    /// * `data` - A vector of `f32` representing the tensor's data.
+    /// * `shape` - A vector of `usize` representing the tensor's shape.
     ///
     /// # Returns
     ///
     /// An `Ok(Tensor)` instance if the shape matches the data,
     /// or a `TensorError::ShapeDataMismatch` error if they do not match.
-    pub fn new(data: &'a [f32], shape: &'a [usize]) -> Result<Tensor<'a>, TensorError<'a>> {
+    pub fn new(data: Vec<f32>, shape: Vec<usize>) -> Result<Tensor, TensorError> {
         let shape_elements = shape.iter().product::<usize>();
         if shape_elements != data.len() {
             return Err(TensorError::ShapeDataMismatch {
@@ -69,13 +69,13 @@ impl<'a> Tensor<'a> {
     ///
     /// # Arguments
     ///
-    /// * `index` - A slice of `usize` representing the multi-dimensional index.
+    /// * `index` - A vector of `usize` representing the multi-dimensional index.
     ///
     /// # Returns
     ///
     /// An `Ok(usize)` representing the flat index, or a `TensorError` if the
     /// index is out of bounds or if there is a dimension mismatch.
-    pub fn flat_index(&self, index: &[usize]) -> Result<usize, TensorError<'a>> {
+    pub fn flat_index(&self, index: Vec<usize>) -> Result<usize, TensorError> {
         if index.len() != self.shape.len() {
             return Err(TensorError::DimensionMismatch {
                 expected: self.shape.len(),
@@ -110,13 +110,13 @@ impl<'a> Tensor<'a> {
     ///
     /// # Arguments
     ///
-    /// * `index` - A slice of `usize` representing the multi-dimensional index.
+    /// * `index` - A vector of `usize` representing the multi-dimensional index.
     ///
     /// # Returns
     ///
     /// An `Ok(f32)` containing the value at the given index, or a `TensorError`
     /// if the index is out of bounds or if there is a dimension mismatch.
-    pub fn get(&self, index: &[usize]) -> Result<f32, TensorError<'a>> {
+    pub fn get(&self, index: Vec<usize>) -> Result<f32, TensorError> {
         let flat_index = self.flat_index(index)?;
         Ok(self.data[flat_index])
     }
@@ -140,11 +140,11 @@ impl<'a> Tensor<'a> {
     /// shapes match.
     /// Otherwise, returns a `TensorError::ShapeMismatch` error detailing the
     /// mismatched shapes.
-    pub fn dot(&self, tensor: &Tensor<'a>) -> Result<f32, TensorError<'a>> {
+    pub fn dot(&self, tensor: &Tensor) -> Result<f32, TensorError> {
         if self.shape != tensor.shape {
             return Err(TensorError::ShapeMismatch {
-                a: self.shape,
-                b: tensor.shape,
+                a: self.shape.clone(),
+                b: tensor.shape.clone(),
             });
         }
 
@@ -157,9 +157,9 @@ impl<'a> Tensor<'a> {
     }
 }
 
-impl<'a> Display for TensorError<'a> {
+impl Display for TensorError {
     fn fmt(&self, formatter: &mut Formatter) -> std::fmt::Result {
-        match *self {
+        match self {
             TensorError::DimensionMismatch { expected, found } => {
                 write!(
                     formatter,
