@@ -8,7 +8,9 @@ impl Perceptron {
     // Initialize the Perceptron with random weights
     pub fn new(input_size: usize) -> Self {
         let mut rng = rand::thread_rng();
-        let weights: Vec<f64> = (0..=input_size).map(|_| rng.gen::<f64>() * 2.0 - 1.0).collect();
+        let weights: Vec<f64> = (0..=input_size)
+            .map(|_| rng.gen::<f64>() * 2.0 - 1.0)
+            .collect();
         Perceptron { weights }
     }
 
@@ -28,9 +30,9 @@ impl Perceptron {
             let predicted_label = if weighted_sum >= 0.0 { 1.0 } else { -1.0 };
 
             // Update weights
-            for i in 0..self.weights.len() {
+            (0..self.weights.len()).for_each(|i| {
                 self.weights[i] += 0.001 * (target_label - predicted_label) * input[i];
-            }
+            });
         }
     }
 
