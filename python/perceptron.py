@@ -2,6 +2,7 @@ import ctypes
 import numpy as np
 import platform
 
+# Determine the correct shared library filename based on the operating system
 system = platform.system()
 if system == 'Linux':
     lib_filename = 'libai.so'
@@ -15,7 +16,7 @@ else:
 # Load the Rust shared library
 lib = ctypes.CDLL(f"./target/release/{lib_filename}")
 
-# Define argument and return types
+# Define the function signatures of the Rust functions
 lib.create_perceptron.argtypes = [ctypes.c_size_t]
 lib.create_perceptron.restype = ctypes.POINTER(ctypes.c_void_p)
 
@@ -35,28 +36,69 @@ lib.predict_perceptron.argtypes = [
 ]
 lib.predict_perceptron.restype = ctypes.c_double
 
+class Perceptron:
+    def __init__(self, input_size):
+        self.perceptron = lib.create_perceptron(input_size)
+        self.input_size = input_size
+
+    def fit(self, training_data, labels, nb_iter):
+        samples_count = len(training_data)
+        data_points_ctypes = (ctypes.POINTER(ctypes.c_double) * samples_count)(*[
+            np.ctypeslib.as_ctypes(np.array(sample, dtype=np.float64)) for sample in training_data
+        ])
+        labels_ctypes = labels.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+        lib.fit_perceptron(self.perceptron, data_points_ctypes, labels_ctypes, samples_count, self.input_size, nb_iter)
+
+    def predict(self, sample_input):
+        sample_input_ctypes = np.ctypeslib.as_ctypes(np.array(sample_input, dtype=np.float64))
+        return lib.predict_perceptron(self.perceptron, sample_input_ctypes, self.input_size)
+
 # Example usage
-input_size = 2
-perceptron = lib.create_perceptron(input_size)
+if __name__ == "__main__":
+    input_size = 2
+    perceptron = Perceptron(input_size)
+    
+    # Linear simple : OK
+    training_data = np.array([
+        [1, 1],
+        [2, 3],
+        [3, 3]
+    ])
+    labels = np.array([
+        1,
+        -1,
+        -1
+    ])
 
-# Prepare data
-data_points = np.array([[0.5, 1.0], [1.5, -1.0]], dtype=np.float64)
-class_labels = np.array([1.0, -1.0], dtype=np.float64)
+    perceptron.fit(training_data, labels, 1000)
+    
+    new_point = [3.0, 3.0]
+    result = perceptron.predict(new_point)
+    print('Linear simple:', result)
 
-# Convert data points to ctypes arrays
-data_points_ctypes = []
-for point in data_points:
-    data_points_ctypes.append((ctypes.c_double * len(point))(*point))
+    # Linear Multiple : OK
+    input_size = 3
+    perceptron = Perceptron(input_size)
 
-# Convert to a ctypes array of pointers
-data_points_ctypes_ptr = (ctypes.POINTER(ctypes.c_double) * len(data_points_ctypes))(*data_points_ctypes)
-class_labels_ctypes = class_labels.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
+    training_data = np.concatenate([np.random.random((50, 2)) * 0.9 + np.array([1, 1]), np.random.random((50, 2)) * 0.9 + np.array([2, 2])])
+    labels = np.concatenate([np.ones((50, 1)), np.ones((50, 1)) * -1.0]).flatten()
 
-# Fit the perceptron
-lib.fit_perceptron(perceptron, data_points_ctypes_ptr, class_labels_ctypes, len(data_points), input_size, 100)
+    perceptron.fit(training_data, labels, 10000)
 
-# Predict
-new_point = np.array([1.0, -0.5], dtype=np.float64)
-new_point_ctypes = new_point.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
-result = lib.predict_perceptron(perceptron, new_point_ctypes, input_size)
-print('Prediction:', result)
+    new_point = [1.5, 1.5]
+    result = perceptron.predict(new_point)
+    print('Linear multiple:', result)
+
+    # XOR: KO
+    input_size = 2
+    perceptron = Perceptron(input_size)
+
+    training_data = np.array([[1, 0], [0, 1], [0, 0], [1, 1]])
+    labels = np.array([1, 1, -1, -1])
+
+    perceptron.fit(training_data, labels, 1000000)
+
+    new_point = [0, 1]
+    result = perceptron.predict(new_point)
+    print('XOR:', result)
+
