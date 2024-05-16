@@ -1,7 +1,18 @@
 import ctypes
+import platform
+
+system = platform.system()
+if system == 'Linux':
+    lib_filename = 'libai.so'
+elif system == 'Darwin':  # macOS
+    lib_filename = 'libai.dylib'
+elif system == 'Windows':
+    lib_filename = 'ai.dll'
+else:
+    raise RuntimeError(f"Unsupported operating system: {system}")
 
 # Load the Rust shared library
-lib = ctypes.CDLL('./target/release/ai.dll')
+lib = ctypes.CDLL(f"./target/release/{lib_filename}")
 
 # Define the function signatures of the Rust functions
 lib.MLP_new.argtypes = [ctypes.POINTER(ctypes.c_size_t), ctypes.c_size_t]
