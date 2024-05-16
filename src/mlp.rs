@@ -1,28 +1,37 @@
 extern crate rand;
 use rand::Rng;
 use std::f64;
+use std::os::raw::{c_double, c_void};
 
-
-struct MyMLP {
+#[repr(C)]
+pub struct MLP {
     d: Vec<usize>,
     W: Vec<Vec<Vec<f64>>>,
     L: usize,
     X: Vec<Vec<f64>>,
     deltas: Vec<Vec<f64>>,
 }
-impl MyMLP {
-    fn new(npl: Vec<usize>) -> MyMLP {
+
+#[no_mangle]
+pub extern "C" fn MLP_new(npl: *const usize, npl_len: usize) -> *mut MLP {
+    let npl_vec: Vec<usize> = unsafe { std::slice::from_raw_parts(npl, npl_len).to_vec() };
+    let mlp = Box::new(MLP::new(npl_vec));
+    Box::into_raw(mlp)
+}
+
+impl MLP {
+    fn new(npl: Vec<usize>) -> MLP {
         let L = npl.len() - 1;
         let mut W = vec![];
-        W.push(vec![vec![0.0];npl[0]+1]);
+        W.push(vec![vec![0.0]; npl[0] + 1]);
         for l in 1..=L {
             W.push(vec![]);
             for i in 0..=npl[l - 1] {
                 W[l].push(vec![]);
                 for j in 0..=npl[l] {
-                    if(j==0){
+                    if j == 0 {
                         W[l][i].push(0.0)
-                    }else {
+                    } else {
                         W[l][i].push(rand::thread_rng().gen_range(-1.0..1.0));
                     }
                 }
@@ -34,15 +43,15 @@ impl MyMLP {
             X.push(vec![]);
             deltas.push(vec![]);
             for j in 0..=npl[l] {
-                if(j==0){
+                if j == 0 {
                     X[l].push(1.0);
-                }else{
+                } else {
                     X[l].push(0.0);
                 }
                 deltas[l].push(0.0);
             }
         }
-        MyMLP { d: npl, W, L, X, deltas }
+        MLP { d: npl, W, L, X, deltas }
     }
 
     fn propagate(&mut self, sample_inputs: Vec<f64>, is_classification: bool) {
@@ -104,4 +113,46 @@ impl MyMLP {
             }
         }
     }
+}
+
+#[no_mangle]
+pub extern "C" fn MLP_propagate(mlp: *mut MLP, sample_inputs: *const c_double, sample_inputs_len: usize, is_classification: bool) {
+    let sample_inputs_vec: Vec<f64> = unsafe { std::slice::from_raw_parts(sample_inputs, sample_inputs_len).to_vec() };
+    let mut mlp_ref = unsafe { &mut *mlp };
+    mlp_ref.propagate(sample_inputs_vec, is_classification);
+}
+
+#[no_mangle]
+pub extern "C" fn MLP_predict(mlp: *mut MLP, sample_inputs: *const c_double, sample_inputs_len: usize, is_classification: bool) -> *mut c_double {
+    let sample_inputs_vec: Vec<f64> = unsafe { std::slice::from_raw_parts(sample_inputs, sample_inputs_len).to_vec() };
+    let mut mlp_ref = unsafe { &mut *mlp };
+    let mut output = mlp_ref.predict(sample_inputs_vec, is_classification);
+    let output_ptr = output.as_mut_ptr();
+    std::mem::forget(output);
+    output_ptr
+}
+
+#[no_mangle]
+pub extern "C" fn MLP_train(mlp: *mut MLP, all_samples_inputs: *const *const c_double, all_samples_expected_outputs: *const *const c_double, samples_count: usize, sample_inputs_len: usize, alpha: c_double, nb_iter: usize, is_classification: bool) {
+    let all_samples_inputs_vec: Vec<Vec<f64>> = unsafe {
+        std::slice::from_raw_parts(all_samples_inputs, samples_count)
+            .iter()
+            .map(|&input_ptr| std::slice::from_raw_parts(input_ptr, sample_inputs_len).to_vec())
+            .collect()
+    };
+
+    let all_samples_expected_outputs_vec: Vec<Vec<f64>> = unsafe {
+        std::slice::from_raw_parts(all_samples_expected_outputs, samples_count)
+            .iter()
+            .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, 1).to_vec())
+            .collect()
+    };
+
+    let mut mlp_ref = unsafe { &mut *mlp };
+    mlp_ref.train(all_samples_inputs_vec, all_samples_expected_outputs_vec, alpha as f64, nb_iter, is_classification);
+}
+
+#[no_mangle]
+pub extern "C" fn MLP_free(mlp: *mut MLP) {
+    unsafe { Box::from_raw(mlp); }
 }
