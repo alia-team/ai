@@ -1,8 +1,19 @@
 import ctypes
 import numpy as np
+import platform
 
-# Load the shared library
-lib = ctypes.CDLL('./target/release/libai.so')
+system = platform.system()
+if system == 'Linux':
+    lib_filename = 'libai.so'
+elif system == 'Darwin':  # macOS
+    lib_filename = 'libai.dylib'
+elif system == 'Windows':
+    lib_filename = 'ai.dll'
+else:
+    raise RuntimeError(f"Unsupported operating system: {system}")
+
+# Load the Rust shared library
+lib = ctypes.CDLL(f"./target/release/{lib_filename}")
 
 # Define argument and return types
 lib.create_perceptron.argtypes = [ctypes.c_size_t]
@@ -49,7 +60,3 @@ new_point = np.array([1.0, -0.5], dtype=np.float64)
 new_point_ctypes = new_point.ctypes.data_as(ctypes.POINTER(ctypes.c_double))
 result = lib.predict_perceptron(perceptron, new_point_ctypes, input_size)
 print('Prediction:', result)
-
-class Perceptron:
-    def __init__(self) -> None:
-        
