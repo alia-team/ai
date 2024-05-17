@@ -4,7 +4,7 @@ use std::fmt::{Display, Formatter};
 #[derive(Debug, PartialEq)]
 pub struct Neuron {
     pub weights: Option<Tensor>,
-    pub bias: f32,
+    pub bias: f64,
 }
 
 #[derive(Debug, PartialEq)]
@@ -13,14 +13,14 @@ pub enum NeuronError {
 }
 
 impl Neuron {
-    pub fn new(bias: f32) -> Neuron {
+    pub fn new(bias: f64) -> Neuron {
         Neuron {
             weights: None,
             bias,
         }
     }
 
-    pub fn forward(&self, inputs: &Tensor) -> Result<f32, NeuronError> {
+    pub fn forward(&self, inputs: &Tensor) -> Result<f64, NeuronError> {
         if self.weights.is_none() {
             return Err(NeuronError::WeightsNotInitialized);
         }

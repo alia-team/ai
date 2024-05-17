@@ -22,7 +22,7 @@ impl Layer {
     }
 
     pub fn forward(&mut self, inputs: &Tensor) -> Tensor {
-        let mut outputs: Vec<f32> = vec![];
+        let mut outputs: Vec<f64> = vec![];
 
         for neuron in self.neurons.iter_mut() {
             if neuron.weights.is_none() {

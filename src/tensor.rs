@@ -2,7 +2,7 @@ use std::fmt::{Display, Formatter};
 
 #[derive(Debug, PartialEq)]
 pub struct Tensor {
-    pub data: Vec<f32>,
+    pub data: Vec<f64>,
     pub shape: Vec<usize>,
 }
 
@@ -28,7 +28,7 @@ pub enum TensorError {
 }
 
 impl Tensor {
-    pub fn new(data: Vec<f32>, shape: Vec<usize>) -> Result<Tensor, TensorError> {
+    pub fn new(data: Vec<f64>, shape: Vec<usize>) -> Result<Tensor, TensorError> {
         let shape_elements = shape.iter().product::<usize>();
         if shape_elements != data.len() {
             return Err(TensorError::ShapeDataMismatch {
@@ -70,12 +70,12 @@ impl Tensor {
         Ok(flat_index)
     }
 
-    pub fn get(&self, index: Vec<usize>) -> Result<f32, TensorError> {
+    pub fn get(&self, index: Vec<usize>) -> Result<f64, TensorError> {
         let flat_index = self.flat_index(index)?;
         Ok(self.data[flat_index])
     }
 
-    pub fn dot(&self, tensor: &Tensor) -> Result<f32, TensorError> {
+    pub fn dot(&self, tensor: &Tensor) -> Result<f64, TensorError> {
         if self.shape != tensor.shape {
             return Err(TensorError::ShapeMismatch {
                 a: self.shape.clone(),
