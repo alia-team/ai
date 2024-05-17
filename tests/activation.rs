@@ -8,6 +8,20 @@ fn binary_step() {
 }
 
 #[test]
+fn identity() {
+    assert_eq!(activation::identity(-1.0), -1.0);
+    assert_eq!(activation::identity(0.0), 0.0);
+    assert_eq!(activation::identity(1.0), 1.0);
+}
+
+#[test]
+fn linear() {
+    assert_eq!(activation::linear(-1.0), -1.0);
+    assert_eq!(activation::linear(0.0), 0.0);
+    assert_eq!(activation::linear(1.0), 1.0);
+}
+
+#[test]
 fn logistic() {
     assert_eq!(activation::logistic(1.0), 0.7310586);
     assert_eq!(activation::logistic(10.0), 0.9999546);
