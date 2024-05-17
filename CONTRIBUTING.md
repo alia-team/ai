@@ -28,10 +28,6 @@
 2. Once the work done and the PR approved, merge work branch into `develop`;
 3. Once develop is **stable** with enough changes, merge it into `main`.
 
-## Unit Tests
-
-- **100% coverage** is a must: do robust **unit tests for each function/method** you've built.
-
 ## Format
 
 - **Format your code**! You can enable auto-formatting on save;
