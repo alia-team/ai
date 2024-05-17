@@ -33,3 +33,9 @@ pub fn sign(x: f64) -> f64 {
         -1.0
     }
 }
+
+pub fn softmax(z: Vec<f64>) -> Vec<f64> {
+    let exp_z: Vec<f64> = z.iter().map(|&x| x.exp()).collect();
+    let sum_exp_z: f64 = exp_z.iter().sum();
+    exp_z.iter().map(|&x| x / sum_exp_z).collect()
+}
