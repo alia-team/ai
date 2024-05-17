@@ -34,3 +34,10 @@ fn sigmoid() {
     assert_eq!(activation::sigmoid(10.0), 0.9999546);
     assert_eq!(activation::sigmoid(-5.0), 0.0066928524);
 }
+
+#[test]
+fn sign() {
+    assert_eq!(activation::sign(-1.0), -1.0);
+    assert_eq!(activation::sign(0.0), 1.0);
+    assert_eq!(activation::sign(1.0), 1.0);
+}
