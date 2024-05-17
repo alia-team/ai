@@ -77,10 +77,10 @@ mlp = MLP(npl)
 
 # Initialize the training dataset and labels
 training_dataset = np.random.random((500, 2)) * 2.0 - 1.0
-labels = np.array([[1, 0, 0] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
-              [0, 1, 0] if -p[0] - p[1] - 0.5 < 0 and p[1] > 0 and p[0] - p[1] - 0.5 < 0 else
-              [0, 0, 1] if -p[0] - p[1] - 0.5 < 0 and p[1] < 0 and p[0] - p[1] - 0.5 > 0 else
-              [0, 0, 0]for p in training_dataset])
+labels = np.array([[1, -1, -1] if -p[0] - p[1] - 0.5 > 0 and p[1] < 0 and p[0] - p[1] - 0.5 < 0 else
+              [-1, 1, -1] if -p[0] - p[1] - 0.5 < 0 and p[1] > 0 and p[0] - p[1] - 0.5 < 0 else
+              [-1, -1, 1] if -p[0] - p[1] - 0.5 < 0 and p[1] < 0 and p[0] - p[1] - 0.5 > 0 else
+              [-1, -1, -1]for p in training_dataset])
 
 training_dataset = training_dataset[[not np.all(arr == [0, 0, 0]) for arr in labels]]
 labels = labels[[not np.all(arr == [0, 0, 0]) for arr in labels]]
