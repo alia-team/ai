@@ -59,3 +59,11 @@ pub fn logistic(x: f32) -> f32 {
 pub fn sigmoid(x: f32) -> f32 {
     logistic(x)
 }
+
+pub fn sign(x: f64) -> f64 {
+    if x >= 0.0 {
+        1.0
+    } else {
+        -1.0
+    }
+}
