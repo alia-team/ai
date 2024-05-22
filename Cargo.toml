@@ -8,3 +8,4 @@ crate-type = ["cdylib", "lib"]
 
 [dependencies]
 rand = "0.8.5"
+image = "0.25.1"
