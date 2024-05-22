@@ -1,6 +1,9 @@
 # Build files
 target
 
+# Cache
+**/__pycache__
+
 # IDE files
 .idea
 .vscode

@@ -1,67 +1,26 @@
 use crate::tensor::Tensor;
 use std::fmt::{Display, Formatter};
 
-/// Represents a neuron with its parameters.
-///
-/// Weights are an option because since the number of weights depends on the
-/// number of inputs, we can't define the weights at neuron's creation.
-/// Weights are initialized during the first forward pass.
 #[derive(Debug, PartialEq)]
 pub struct Neuron {
     pub weights: Option<Tensor>,
-    pub bias: f32,
+    pub bias: f64,
 }
 
-/// Errors that can occur when working with `Neuron`.
-///
-/// For now, this enum defines the error that can result when doing a forward
-/// pass with weights that are not initialized.
 #[derive(Debug, PartialEq)]
 pub enum NeuronError {
     WeightsNotInitialized,
 }
 
 impl Neuron {
-    /// Creates a new `Neuron` instance from a bias.
-    ///
-    /// Since the number of weights depends on the number of inputs, we can't
-    /// define the weights at neuron's creation.
-    /// Weights are initialized during the first forward pass.
-    ///
-    /// # Argument
-    ///
-    /// * `bias` - A `f32` letting developer choose its way to initialize it.
-    ///
-    /// # Returns
-    ///
-    /// A `Neuron` instance.
-    pub fn new(bias: f32) -> Neuron {
+    pub fn new(bias: f64) -> Neuron {
         Neuron {
             weights: None,
             bias,
         }
     }
 
-    /// Performs a forward pass on the neuron with given inputs.
-    ///
-    /// This method calculates the weighted sum of the inputs and the neuron's
-    /// bias.
-    /// It requires that the weights of the neuron have been initialized
-    /// beforehand.
-    /// If the weights are not initialized, it returns a
-    /// `NeuronError::WeightsNotInitialized` error.
-    ///
-    /// # Arguments
-    ///
-    /// * `inputs` - A reference to a `Tensor` representing the inputs to the
-    /// neuron.
-    ///
-    /// # Returns
-    ///
-    /// An `Ok(f32)` containing the result of the weighted sum plus the bias if
-    /// the weights are initialized.
-    /// Otherwise, returns a `NeuronError::WeightsNotInitialized` error.
-    pub fn forward(&self, inputs: &Tensor) -> Result<f32, NeuronError> {
+    pub fn forward(&self, inputs: &Tensor) -> Result<f64, NeuronError> {
         if self.weights.is_none() {
             return Err(NeuronError::WeightsNotInitialized);
         }

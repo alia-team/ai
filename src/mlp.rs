@@ -1,7 +1,7 @@
 extern crate rand;
 use rand::Rng;
 use std::f64;
-use std::os::raw::{c_double, c_void};
+use std::os::raw::c_double;
 
 #[repr(C)]
 pub struct MLP {
@@ -10,13 +10,6 @@ pub struct MLP {
     L: usize,
     X: Vec<Vec<f64>>,
     deltas: Vec<Vec<f64>>,
-}
-
-#[no_mangle]
-pub extern "C" fn MLP_new(npl: *const usize, npl_len: usize) -> *mut MLP {
-    let npl_vec: Vec<usize> = unsafe { std::slice::from_raw_parts(npl, npl_len).to_vec() };
-    let mlp = Box::new(MLP::new(npl_vec));
-    Box::into_raw(mlp)
 }
 
 impl MLP {
@@ -51,7 +44,20 @@ impl MLP {
                 deltas[l].push(0.0);
             }
         }
-        MLP { d: npl, W, L, X, deltas }
+        MLP {
+            d: npl,
+            W,
+            L,
+            X,
+            deltas,
+        }
+    }
+
+    #[no_mangle]
+    pub extern "C" fn mlp_new(npl: *const usize, npl_len: usize) -> *mut MLP {
+        let npl_vec: Vec<usize> = unsafe { std::slice::from_raw_parts(npl, npl_len).to_vec() };
+        let mlp = Box::new(MLP::new(npl_vec));
+        Box::into_raw(mlp)
     }
 
     fn propagate(&mut self, sample_inputs: Vec<f64>, is_classification: bool) {
@@ -78,7 +84,14 @@ impl MLP {
         self.X[self.L][1..].to_vec()
     }
 
-    fn train(&mut self, all_samples_inputs: Vec<Vec<f64>>, all_samples_expected_outputs: Vec<Vec<f64>>, alpha: f64, nb_iter: usize, is_classification: bool) {
+    fn train(
+        &mut self,
+        all_samples_inputs: Vec<Vec<f64>>,
+        all_samples_expected_outputs: Vec<Vec<f64>>,
+        alpha: f64,
+        nb_iter: usize,
+        is_classification: bool,
+    ) {
         for _ in 0..nb_iter {
             let k = rand::thread_rng().gen_range(0..all_samples_inputs.len());
             let sample_inputs = &all_samples_inputs[k];
@@ -116,15 +129,14 @@ impl MLP {
 }
 
 #[no_mangle]
-pub extern "C" fn MLP_propagate(mlp: *mut MLP, sample_inputs: *const c_double, sample_inputs_len: usize, is_classification: bool) {
-    let sample_inputs_vec: Vec<f64> = unsafe { std::slice::from_raw_parts(sample_inputs, sample_inputs_len).to_vec() };
-    let mut mlp_ref = unsafe { &mut *mlp };
-    mlp_ref.propagate(sample_inputs_vec, is_classification);
-}
-
-#[no_mangle]
-pub extern "C" fn MLP_predict(mlp: *mut MLP, sample_inputs: *const c_double, sample_inputs_len: usize, is_classification: bool) -> *mut c_double {
-    let sample_inputs_vec: Vec<f64> = unsafe { std::slice::from_raw_parts(sample_inputs, sample_inputs_len).to_vec() };
+pub extern "C" fn mlp_predict(
+    mlp: *mut MLP,
+    sample_inputs: *const c_double,
+    sample_inputs_len: usize,
+    is_classification: bool,
+) -> *mut c_double {
+    let sample_inputs_vec: Vec<f64> =
+        unsafe { std::slice::from_raw_parts(sample_inputs, sample_inputs_len).to_vec() };
     let mut mlp_ref = unsafe { &mut *mlp };
     let mut output = mlp_ref.predict(sample_inputs_vec, is_classification);
     let output_ptr = output.as_mut_ptr();
@@ -133,7 +145,16 @@ pub extern "C" fn MLP_predict(mlp: *mut MLP, sample_inputs: *const c_double, sam
 }
 
 #[no_mangle]
-pub extern "C" fn MLP_train(mlp: *mut MLP, all_samples_inputs: *const *const c_double, all_samples_expected_outputs: *const *const c_double, samples_count: usize, sample_inputs_len: usize, alpha: c_double, nb_iter: usize, is_classification: bool) {
+pub extern "C" fn mlp_train(
+    mlp: *mut MLP,
+    all_samples_inputs: *const *const c_double,
+    all_samples_expected_outputs: *const *const c_double,
+    samples_count: usize,
+    sample_inputs_len: usize,
+    alpha: c_double,
+    nb_iter: usize,
+    is_classification: bool,
+) {
     let all_samples_inputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_inputs, samples_count)
             .iter()
@@ -149,10 +170,18 @@ pub extern "C" fn MLP_train(mlp: *mut MLP, all_samples_inputs: *const *const c_d
     };
 
     let mut mlp_ref = unsafe { &mut *mlp };
-    mlp_ref.train(all_samples_inputs_vec, all_samples_expected_outputs_vec, alpha as f64, nb_iter, is_classification);
+    mlp_ref.train(
+        all_samples_inputs_vec,
+        all_samples_expected_outputs_vec,
+        alpha as f64,
+        nb_iter,
+        is_classification,
+    );
 }
 
 #[no_mangle]
-pub extern "C" fn MLP_free(mlp: *mut MLP) {
-    unsafe { Box::from_raw(mlp); }
+pub extern "C" fn mlp_free(mlp: *mut MLP) {
+    unsafe {
+        let _ = Box::from_raw(mlp);
+    }
 }
