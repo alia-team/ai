@@ -1,4 +1,5 @@
 pub mod activation;
+pub mod data_processing;
 pub mod layer;
 pub mod loss;
 pub mod mlp;
@@ -7,4 +8,3 @@ pub mod neuron;
 pub mod optimizer;
 pub mod perceptron;
 pub mod tensor;
-pub mod data_processing;
