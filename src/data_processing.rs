@@ -5,7 +5,7 @@ pub enum ImageError {
     ImageNotProcceded,
 }
 
-pub fn image_to_array(image_path:&str) ->Result<Vec<u8>, ImageError>{
+pub fn image_to_vector(image_path: &str) -> Result<Vec<u8>, ImageError> {
     let img = image::open(image_path).expect("Failed to open image");
 
     let (width, height) = img.dimensions();
