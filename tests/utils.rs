@@ -2,7 +2,7 @@ use ai::utils;
 
 #[test]
 fn init_weights() {
-    let neurons_per_layer: Vec<u8> = vec![2, 3, 1];
+    let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
     let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer);
 
     // Checking number of layers
