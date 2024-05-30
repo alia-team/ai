@@ -1,4 +1,6 @@
+extern crate rand;
 use ai::utils;
+use rand::Rng;
 
 #[test]
 fn init_outputs() {
@@ -83,4 +85,35 @@ fn init_weights() {
             *neurons_per_layer.last().expect(expect_msg)
         )
     }
+}
+
+#[test]
+fn init_centers() {
+    let mut rng = rand::thread_rng();
+
+    // Build dataset
+    let dataset_size: usize = 100;
+    let mut set1: Vec<Vec<f64>> = (0..(dataset_size / 2))
+        .map(|_| {
+            let x = rng.gen::<f64>() * 0.9 + 1.0;
+            let y = rng.gen::<f64>() * 0.9 + 1.0;
+            vec![x, y]
+        })
+        .collect();
+    let mut set2: Vec<Vec<f64>> = (0..(dataset_size / 2))
+        .map(|_| {
+            let x = rng.gen::<f64>() * 0.9 + 2.0;
+            let y = rng.gen::<f64>() * 0.9 + 2.0;
+            vec![x, y]
+        })
+        .collect();
+    let mut dataset = Vec::new();
+    dataset.append(&mut set1);
+    dataset.append(&mut set2);
+
+    let hidden_layer_neurons_count = dataset_size / 10;
+
+    let centers = utils::init_centers(hidden_layer_neurons_count, dataset);
+
+    assert_eq!(centers.len(), hidden_layer_neurons_count);
 }
