@@ -25,7 +25,7 @@ pub fn init_outputs(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<f64>
     outputs
 }
 
-pub fn init_weights(neurons_per_layer: Vec<usize>) -> Vec<Vec<Vec<f64>>> {
+pub fn init_weights(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<Vec<f64>>> {
     let mut weights: Vec<Vec<Vec<f64>>> = vec![];
 
     for layer in 0..neurons_per_layer.len() {
@@ -34,12 +34,16 @@ pub fn init_weights(neurons_per_layer: Vec<usize>) -> Vec<Vec<Vec<f64>>> {
             continue;
         }
 
+        if is_rbf {
+            continue;
+        }
+
         for neuron in 0..neurons_per_layer[layer] {
             weights[layer].push(vec![]);
 
             // +1 for bias
             for input in 0..(neurons_per_layer[layer - 1] + 1) {
-                if input == 0 {
+                if input == 0 && !is_rbf {
                     // Bias
                     weights[layer][neuron].push(0.0)
                 } else {

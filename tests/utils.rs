@@ -47,7 +47,9 @@ fn init_outputs() {
 #[test]
 fn init_weights() {
     let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
-    let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone());
+
+    // Check for a non-RBF neural network
+    let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone(), false);
 
     // Checking number of layers
     assert_eq!(weights.len(), 3);
@@ -67,5 +69,18 @@ fn init_weights() {
                 neurons_per_layer[layer - 1] + 1 // +1 for bias
             )
         }
+    }
+
+    // Check for a RBF neural network
+    let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone(), true);
+    let expect_msg: &str = "output neuron should have weighted inputs";
+
+    assert_eq!(weights.len(), 3);
+    // Checking number of weights per neuron only for the output layer
+    for neuron in 0..weights.last().expect(expect_msg).len() {
+        assert_eq!(
+            weights.last().expect(expect_msg)[neuron].len(),
+            *neurons_per_layer.last().expect(expect_msg)
+        )
     }
 }
