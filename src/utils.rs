@@ -1,16 +1,16 @@
 extern crate rand;
 use rand::Rng;
 
-pub fn init_outputs(neurons_per_layer: Vec<usize>) -> Vec<Vec<f64>> {
+pub fn init_outputs(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<f64>> {
     let mut outputs: Vec<Vec<f64>> = vec![];
 
     // Skip output layer
     for layer in 0..(neurons_per_layer.len() - 1) {
         outputs.push(vec![]);
 
-        // +1 for bias
-        for neuron in 0..(neurons_per_layer[layer] + 1) {
-            if neuron == 0 {
+        // +1 for bias except for RBF
+        for neuron in 0..(neurons_per_layer[layer] + (if is_rbf { 0 } else { 1 })) {
+            if neuron == 0 && !is_rbf {
                 // Bias
                 outputs[layer].push(1.0)
             } else {

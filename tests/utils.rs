@@ -3,7 +3,9 @@ use ai::utils;
 #[test]
 fn init_outputs() {
     let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
-    let outputs: Vec<Vec<f64>> = utils::init_outputs(neurons_per_layer.clone());
+
+    // Check for a non-RBF neural network
+    let outputs: Vec<Vec<f64>> = utils::init_outputs(neurons_per_layer.clone(), false);
 
     // Check number of layers
     assert_eq!(outputs.len(), 3);
@@ -26,6 +28,18 @@ fn init_outputs() {
                 continue;
             }
             assert_eq!(outputs[layer][output], 0.0)
+        }
+    }
+
+    // Check for a RBF neural network
+    let outputs: Vec<Vec<f64>> = utils::init_outputs(neurons_per_layer.clone(), true);
+
+    assert_eq!(outputs.len(), 3);
+    for layer in 0..outputs.len() {
+        // No bias check in a RBF
+        assert_eq!(outputs[layer].len(), neurons_per_layer[layer]);
+        for output in 0..outputs[layer].len() {
+            assert_eq!(outputs[layer][output], 0.0);
         }
     }
 }
