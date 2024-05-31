@@ -73,14 +73,15 @@ fn init_weights() {
 
     // Check for a RBF neural network
     let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone(), true);
-    let expect_msg: &str = "output neuron should have weighted inputs";
 
     assert_eq!(weights.len(), 3);
-    // Checking number of weights per neuron only for the output layer
-    for neuron in 0..weights.last().expect(expect_msg).len() {
-        assert_eq!(
-            weights.last().expect(expect_msg)[neuron].len(),
-            *neurons_per_layer.last().expect(expect_msg)
-        )
+
+    // The two first layers in a RBF shouldn't have any weights
+    for i in 0..2 {
+        assert_eq!(weights[i].len(), 0);
+    }
+
+    for neuron in 0..weights[2].len() {
+        assert_eq!(weights[2][neuron].len(), neurons_per_layer[1])
     }
 }

@@ -34,15 +34,15 @@ pub fn init_weights(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<Vec<
             continue;
         }
 
-        if is_rbf {
+        if layer == 1 && is_rbf {
             continue;
         }
 
         for neuron in 0..neurons_per_layer[layer] {
             weights[layer].push(vec![]);
 
-            // +1 for bias
-            for input in 0..(neurons_per_layer[layer - 1] + 1) {
+            // +1 for bias if it's not a RBF neural network
+            for input in 0..(neurons_per_layer[layer - 1] + (if is_rbf { 0 } else { 1 })) {
                 if input == 0 && !is_rbf {
                     // Bias
                     weights[layer][neuron].push(0.0)
