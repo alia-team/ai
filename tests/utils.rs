@@ -1,6 +1,4 @@
-extern crate rand;
 use ai::utils;
-use rand::Rng;
 
 #[test]
 fn init_outputs() {
@@ -75,45 +73,15 @@ fn init_weights() {
 
     // Check for a RBF neural network
     let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone(), true);
-    let expect_msg: &str = "output neuron should have weighted inputs";
 
     assert_eq!(weights.len(), 3);
-    // Checking number of weights per neuron only for the output layer
-    for neuron in 0..weights.last().expect(expect_msg).len() {
-        assert_eq!(
-            weights.last().expect(expect_msg)[neuron].len(),
-            *neurons_per_layer.last().expect(expect_msg)
-        )
+
+    // The two first layers in a RBF shouldn't have any weights
+    for i in 0..2 {
+        assert_eq!(weights[i].len(), 0);
     }
-}
 
-#[test]
-fn init_centers() {
-    let mut rng = rand::thread_rng();
-
-    // Build dataset
-    let dataset_size: usize = 100;
-    let mut set1: Vec<Vec<f64>> = (0..(dataset_size / 2))
-        .map(|_| {
-            let x = rng.gen::<f64>() * 0.9 + 1.0;
-            let y = rng.gen::<f64>() * 0.9 + 1.0;
-            vec![x, y]
-        })
-        .collect();
-    let mut set2: Vec<Vec<f64>> = (0..(dataset_size / 2))
-        .map(|_| {
-            let x = rng.gen::<f64>() * 0.9 + 2.0;
-            let y = rng.gen::<f64>() * 0.9 + 2.0;
-            vec![x, y]
-        })
-        .collect();
-    let mut dataset = Vec::new();
-    dataset.append(&mut set1);
-    dataset.append(&mut set2);
-
-    let hidden_layer_neurons_count = dataset_size / 10;
-
-    let centers = utils::init_centers(hidden_layer_neurons_count, dataset);
-
-    assert_eq!(centers.len(), hidden_layer_neurons_count);
+    for neuron in 0..weights[2].len() {
+        assert_eq!(weights[2][neuron].len(), neurons_per_layer[1])
+    }
 }

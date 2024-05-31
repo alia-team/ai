@@ -34,15 +34,15 @@ pub fn init_weights(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<Vec<
             continue;
         }
 
-        if is_rbf {
+        if layer == 1 && is_rbf {
             continue;
         }
 
         for neuron in 0..neurons_per_layer[layer] {
             weights[layer].push(vec![]);
 
-            // +1 for bias
-            for input in 0..(neurons_per_layer[layer - 1] + 1) {
+            // +1 for bias if it's not a RBF neural network
+            for input in 0..(neurons_per_layer[layer - 1] + (if is_rbf { 0 } else { 1 })) {
                 if input == 0 && !is_rbf {
                     // Bias
                     weights[layer][neuron].push(0.0)
@@ -55,14 +55,4 @@ pub fn init_weights(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<Vec<
     }
 
     weights
-}
-
-pub fn init_centers(hidden_layer_neurons_count: usize, dataset: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
-    let mut centers: Vec<Vec<f64>> = vec![];
-
-    for _ in 0..hidden_layer_neurons_count {
-        centers.push(dataset[rand::thread_rng().gen_range(0..dataset.len())].clone());
-    }
-
-    centers
 }
