@@ -56,13 +56,3 @@ pub fn init_weights(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<Vec<
 
     weights
 }
-
-pub fn init_centers(hidden_layer_neurons_count: usize, dataset: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
-    let mut centers: Vec<Vec<f64>> = vec![];
-
-    for _ in 0..hidden_layer_neurons_count {
-        centers.push(dataset[rand::thread_rng().gen_range(0..dataset.len())].clone());
-    }
-
-    centers
-}
