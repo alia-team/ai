@@ -50,6 +50,7 @@ fn new() {
         )
     }
 
-    // Check centers
+    // Check other parameters
     assert_eq!(rbf.centers.len(), hidden_layer_neurons_count);
+    assert!(rbf.gamma <= 1.0 && rbf.gamma >= 0.01);
 }
