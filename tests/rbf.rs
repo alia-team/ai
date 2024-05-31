@@ -47,7 +47,7 @@ fn rbf_new() {
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
 
-    let rbf = RBF::new(vec![3, hidden_layer_neurons_count, 3], true, dataset);
+    let rbf: RBF = RBF::new(vec![3, hidden_layer_neurons_count, 3], true, dataset);
 
     // Check outputs
     assert_eq!(rbf.outputs.len(), 3);
@@ -64,12 +64,26 @@ fn rbf_new() {
     assert_eq!(rbf.weights.len(), 3);
     for neuron in 0..rbf.weights.last().expect(expect_msg).len() {
         assert_eq!(
-            rbf.weights.last().expect(expect_msg)[neuron].len(),
-            *rbf.neurons_per_layer.last().expect(expect_msg)
+            rbf.weights[2][neuron].len(),
+            rbf.neurons_per_layer[1]
         )
     }
 
     // Check other parameters
     assert_eq!(rbf.centers.len(), hidden_layer_neurons_count);
     assert!(rbf.gamma <= 1.0 && rbf.gamma >= 0.01);
+}
+
+#[test]
+fn rbf_predict() {
+    let dataset_size: usize = 100;
+    let clusters_count: usize = 2;
+    let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
+    let hidden_layer_neurons_count: usize = dataset_size / 10;
+    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
+    let input: Vec<f64> = vec![1.0, 2.0];
+    let prediction: Vec<f64> = rbf.predict(input);
+
+    assert_eq!(prediction.len(), 1);
+    assert!(prediction[0] == -1.0 || prediction[0] == 1.0)
 }
