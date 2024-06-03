@@ -165,7 +165,7 @@ pub extern "C" fn mlp_train(
     let all_samples_expected_outputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_expected_outputs, samples_count)
             .iter()
-            .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, 1).to_vec())
+            .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, (*mlp).d[(*mlp).L]).to_vec())
             .collect()
     };
 
