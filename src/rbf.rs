@@ -29,24 +29,6 @@ impl Center {
         (-gamma * norm.powi(2)).exp()
     }
 }
-fn flatten_to_2d<T: Clone>(flat: Vec<T>, rows: usize, cols: usize) -> Vec<Vec<T>> {
-    // Ensure the flat vector's size matches the 2D vector shape
-    assert_eq!(
-        flat.len(),
-        rows * cols,
-        "The size of the flat vector does not match the specified dimensions"
-    );
-
-    let mut result = Vec::with_capacity(rows);
-
-    for i in 0..rows {
-        let start = i * cols;
-        let end = start + cols;
-        result.push(flat[start..end].to_vec());
-    }
-
-    result
-}
 
 pub struct RBF {
     pub neurons_per_layer: Vec<usize>,
