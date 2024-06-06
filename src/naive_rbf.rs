@@ -45,7 +45,7 @@ impl NaiveRBF {
     pub fn new(
         neurons_per_layer: Vec<usize>,
         is_classification: bool,
-        dataset: Vec<Vec<f64>>,
+        training_dataset: Vec<Vec<f64>>,
     ) -> Self {
         if neurons_per_layer.len() != 3 {
             panic!("A RBF neural network must contain only 3 layers.")
@@ -55,7 +55,7 @@ impl NaiveRBF {
         let mut centers: Vec<Center> = vec![];
         for _ in 0..neurons_per_layer[1] {
             centers.push(Center::new(
-                dataset[rand::thread_rng().gen_range(0..dataset.len())].clone(),
+                training_dataset[rand::thread_rng().gen_range(0..training_dataset.len())].clone(),
             ));
         }
 
@@ -150,7 +150,7 @@ impl NaiveRBF {
 }
 
 #[no_mangle]
-pub extern "C" fn new_naive_rbf(
+pub unsafe extern "C" fn new_naive_rbf(
     neurons_per_layer: *const usize,
     layers_count: usize,
     is_classification: bool,
@@ -163,14 +163,40 @@ pub extern "C" fn new_naive_rbf(
     let npl_vec: Vec<usize> = npl_slice.to_vec();
 
     // Convert training_dataset to Vec<Vec<f64>>
-    let mut dataset: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for i in 0..rows {
         let row_slice: &[f64] = unsafe { slice::from_raw_parts(*training_dataset.add(i), cols) };
-        dataset.push(row_slice.to_vec());
+        training_dataset_vec.push(row_slice.to_vec());
     }
 
-    let naive_rbf: NaiveRBF = NaiveRBF::new(npl_vec, is_classification, dataset);
+    let naive_rbf: NaiveRBF = NaiveRBF::new(npl_vec, is_classification, training_dataset_vec);
     let boxed_naive_rbf: Box<NaiveRBF> = Box::new(naive_rbf);
 
     Box::leak(boxed_naive_rbf)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fit_naive_rbf(
+    naive_rbf_ptr: *mut NaiveRBF,
+    training_dataset: *const *const f64,
+    training_dataset_len: usize,
+    samples_len: usize,
+    labels: *const f64,
+    labels_len: usize,
+) {
+    // Convert training_dataset to Vec<Vec<f64>>
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_len);
+    for i in 0..training_dataset_len {
+        let row_slice: &[f64] =
+            unsafe { slice::from_raw_parts(*training_dataset.add(i), samples_len) };
+        training_dataset_vec.push(row_slice.to_vec());
+    }
+
+    // Convert labels to Vec<f64>
+    let labels_slice: &[f64] = unsafe { slice::from_raw_parts(labels, labels_len) };
+    let labels_vec: Vec<f64> = labels_slice.to_vec();
+
+    if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
+        naive_rbf.fit(training_dataset_vec, labels_vec);
+    }
 }
