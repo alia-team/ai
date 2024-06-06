@@ -149,6 +149,12 @@ impl NaiveRBF {
     }
 }
 
+/// # Safety
+///
+/// This function assumes that the pointers `neurons_per_layer` and `training_dataset`
+/// are valid and that they point to arrays of `layers_count` and `rows` elements respectively.
+/// Each element of the `training_dataset` should be a pointer to an array of `cols` elements.
+/// The caller must ensure that these conditions are met to avoid undefined behavior.
 #[no_mangle]
 pub unsafe extern "C" fn new_naive_rbf(
     neurons_per_layer: *const usize,
@@ -175,6 +181,12 @@ pub unsafe extern "C" fn new_naive_rbf(
     Box::leak(boxed_naive_rbf)
 }
 
+/// # Safety
+///
+/// This function assumes that the pointers `training_dataset` and `labels` are valid and
+/// point to arrays of `training_dataset_len` and `labels_len` elements respectively.
+/// Each element of the `training_dataset` should be a pointer to an array of `samples_len` elements.
+/// The caller must ensure that these conditions are met to avoid undefined behavior.
 #[no_mangle]
 pub unsafe extern "C" fn fit_naive_rbf(
     naive_rbf_ptr: *mut NaiveRBF,
@@ -201,6 +213,10 @@ pub unsafe extern "C" fn fit_naive_rbf(
     }
 }
 
+/// # Safety
+///
+/// This function assumes that the pointer `input` is valid and points to an array of `input_len` elements.
+/// The caller must ensure that this condition is met to avoid undefined behavior.
 #[no_mangle]
 pub unsafe extern "C" fn predict_naive_rbf(
     naive_rbf_ptr: *mut NaiveRBF,
@@ -218,6 +234,10 @@ pub unsafe extern "C" fn predict_naive_rbf(
     }
 }
 
+/// # Safety
+///
+/// This function assumes that the pointer `naive_rbf_ptr` is valid and points to a valid `NaiveRBF` instance.
+/// The caller must ensure that this condition is met to avoid undefined behavior.
 #[no_mangle]
 pub unsafe extern "C" fn free_naive_rbf(naive_rbf_ptr: *mut NaiveRBF) {
     let _ = unsafe { Box::from_raw(naive_rbf_ptr) };
