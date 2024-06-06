@@ -1,10 +1,9 @@
-use std::{ptr, slice};
-
+extern crate rand;
 use crate::activation::sign;
 use crate::utils;
-extern crate rand;
 use nalgebra::*;
 use rand::Rng;
+use std::{ptr, slice};
 
 #[derive(Debug, PartialEq)]
 pub struct Center {
