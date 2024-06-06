@@ -1,4 +1,4 @@
-use std::slice;
+use std::{ptr, slice};
 
 use crate::activation::sign;
 use crate::utils;
@@ -198,5 +198,22 @@ pub unsafe extern "C" fn fit_naive_rbf(
 
     if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
         naive_rbf.fit(training_dataset_vec, labels_vec);
+    }
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn predict_naive_rbf(
+    naive_rbf_ptr: *mut NaiveRBF,
+    input: *const f64,
+    input_len: usize,
+) -> *const f64 {
+    // Convert input to Vec<f64>
+    let input_slice: &[f64] = unsafe { slice::from_raw_parts(input, input_len) };
+    let input_vec: Vec<f64> = input_slice.to_vec();
+
+    if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
+        naive_rbf.predict(input_vec).as_ptr()
+    } else {
+        ptr::null()
     }
 }
