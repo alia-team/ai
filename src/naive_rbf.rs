@@ -1,3 +1,5 @@
+use std::slice;
+
 use crate::activation::sign;
 use crate::utils;
 extern crate rand;
@@ -145,4 +147,30 @@ impl NaiveRBF {
 
         self.outputs[2].clone()
     }
+}
+
+#[no_mangle]
+pub extern "C" fn new_naive_rbf(
+    neurons_per_layer: *const usize,
+    layers_count: usize,
+    is_classification: bool,
+    training_dataset: *const *const f64,
+    rows: usize,
+    cols: usize,
+) -> *mut NaiveRBF {
+    // Convert neurons_per_layer to Vec<usize>
+    let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
+    let npl_vec: Vec<usize> = npl_slice.to_vec();
+
+    // Convert training_dataset to Vec<Vec<f64>>
+    let mut dataset: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    for i in 0..rows {
+        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*training_dataset.add(i), cols) };
+        dataset.push(row_slice.to_vec());
+    }
+
+    let naive_rbf: NaiveRBF = NaiveRBF::new(npl_vec, is_classification, dataset);
+    let boxed_naive_rbf: Box<NaiveRBF> = Box::new(naive_rbf);
+
+    Box::leak(boxed_naive_rbf)
 }
