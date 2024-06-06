@@ -217,3 +217,8 @@ pub unsafe extern "C" fn predict_naive_rbf(
         ptr::null()
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn free_naive_rbf(naive_rbf_ptr: *mut NaiveRBF) {
+    let _ = unsafe { Box::from_raw(naive_rbf_ptr) };
+}
