@@ -30,7 +30,7 @@ impl Center {
     }
 }
 
-pub struct RBF {
+pub struct NaiveRBF {
     pub neurons_per_layer: Vec<usize>,
     pub centers: Vec<Center>,
     pub weights: Vec<Vec<Vec<f64>>>,
@@ -39,7 +39,7 @@ pub struct RBF {
     pub is_classification: bool,
 }
 
-impl RBF {
+impl NaiveRBF {
     pub fn new(
         neurons_per_layer: Vec<usize>,
         is_classification: bool,
@@ -61,7 +61,7 @@ impl RBF {
         let outputs = utils::init_outputs(neurons_per_layer.clone(), true);
         let gamma = rand::thread_rng().gen_range(0.01..=1.0);
 
-        RBF {
+        NaiveRBF {
             neurons_per_layer,
             centers,
             weights,

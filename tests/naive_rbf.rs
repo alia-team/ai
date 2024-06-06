@@ -1,4 +1,4 @@
-use ai::rbf::*;
+use ai::naive_rbf::*;
 extern crate rand;
 use rand::Rng;
 
@@ -60,7 +60,7 @@ fn rbf_new() {
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
     let output_layer_neurons_count: usize = 3;
-    let rbf: RBF = RBF::new(
+    let rbf: NaiveRBF = NaiveRBF::new(
         vec![3, hidden_layer_neurons_count, output_layer_neurons_count],
         true,
         dataset,
@@ -96,7 +96,7 @@ fn rbf_fit() {
     let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let labels: Vec<f64> = build_labels(dataset_size, classes);
     let output_layer_neurons_count: usize = 1;
-    let mut rbf: RBF = RBF::new(
+    let mut rbf: NaiveRBF = NaiveRBF::new(
         vec![2, dataset_size, output_layer_neurons_count],
         true,
         training_dataset.clone(),
@@ -117,7 +117,7 @@ fn rbf_predict() {
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
+    let mut rbf: NaiveRBF = NaiveRBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = rbf.predict(input);
 
