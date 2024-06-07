@@ -190,22 +190,26 @@ pub unsafe extern "C" fn new_naive_rbf(
 pub unsafe extern "C" fn fit_naive_rbf(
     naive_rbf_ptr: *mut NaiveRBF,
     training_dataset: *const *const f64,
-    training_dataset_len: usize,
-    samples_len: usize,
-    labels: *const f64,
-    labels_len: usize,
+    training_dataset_nrows: usize,
+    training_dataset_ncols: usize,
+    labels: *const *const f64,
+    labels_nrows: usize,
+    labels_ncols: usize,
 ) {
     // Convert training_dataset to Vec<Vec<f64>>
-    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_len);
-    for i in 0..training_dataset_len {
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
+    for i in 0..training_dataset_nrows {
         let row_slice: &[f64] =
-            unsafe { slice::from_raw_parts(*training_dataset.add(i), samples_len) };
+            unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
         training_dataset_vec.push(row_slice.to_vec());
     }
 
-    // Convert labels to Vec<f64>
-    let labels_slice: &[f64] = unsafe { slice::from_raw_parts(labels, labels_len) };
-    let labels_vec: Vec<f64> = labels_slice.to_vec();
+    // Convert labels to Vec<Vec<f64>>
+    let mut labels_vec: Vec<Vec<f64>> = Vec::with_capacity(labels_nrows);
+    for i in 0..labels_nrows {
+        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
+        labels_vec.push(row_slice.to_vec());
+    }
 
     if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
         naive_rbf.fit(training_dataset_vec, labels_vec);
