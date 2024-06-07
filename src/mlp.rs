@@ -2,6 +2,8 @@ extern crate rand;
 use rand::Rng;
 use std::f64;
 use std::os::raw::c_double;
+use std::fs::File;
+use std::io::prelude::*;
 
 #[repr(C)]
 pub struct MLP {
@@ -177,6 +179,8 @@ pub extern "C" fn mlp_train(
         nb_iter,
         is_classification,
     );
+
+    save_weights(&mlp_ref, "weights.txt").unwrap();
 }
 
 #[no_mangle]
@@ -184,4 +188,21 @@ pub extern "C" fn mlp_free(mlp: *mut MLP) {
     unsafe {
         let _ = Box::from_raw(mlp);
     }
+}
+
+fn save_weights(model: &MLP, filename: &str) -> std::io::Result<()> {
+    let mut file = File::create(filename)?;
+
+    writeln!(file, "{} {}", model.L, model.d[0])?;
+
+    for l in 1..model.L {
+        for j in 0..model.d[l] {
+            for i in 0..model.d[l - 1] {
+                writeln!(file, "{}", model.W[l - 1][j][i])?;
+            }
+            writeln!(file, "{}", model.W[l][model.d[l - 1]][j])?;
+        }
+    }
+
+    Ok(())
 }
