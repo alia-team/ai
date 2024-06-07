@@ -1,6 +1,7 @@
 use crate::activation::sign;
 use crate::utils;
 extern crate rand;
+use nalgebra::*;
 use rand::Rng;
 
 #[derive(Debug, PartialEq)]
@@ -68,6 +69,50 @@ impl RBF {
             gamma,
             is_classification,
         }
+    }
+
+    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<f64>) {
+        let n_samples = training_dataset.len();
+        let feature_len = training_dataset[0].len();
+
+        // Construct Phi matrix
+        let mut phi = DMatrix::zeros(n_samples, n_samples);
+        for i in 0..n_samples {
+            for j in 0..n_samples {
+                let mut norm: f64 = 0.0;
+                for k in 0..feature_len {
+                    let diff = training_dataset[i][k] - training_dataset[j][k];
+                    norm += diff * diff;
+                }
+                norm = norm.sqrt();
+                phi[(i, j)] = (-self.gamma * norm.powi(2)).exp();
+            }
+        }
+
+        // Invert Phi matrix
+        let phi_inv = match phi.clone().try_inverse() {
+            Some(inv) => inv,
+            None => panic!("Matrix inversion failed."),
+        };
+
+        // Construct Y vector
+        let y = DVector::from_vec(labels);
+
+        // Compute weights
+        let weights_matrix = phi_inv * y;
+
+        // Convert the DMatrix to Vec<Vec<T>>
+        let mut weights: Vec<Vec<f64>> = Vec::with_capacity(weights_matrix.ncols());
+        for i in 0..self.neurons_per_layer[2] {
+            let mut row_vec = Vec::with_capacity(weights_matrix.nrows());
+            for j in 0..self.neurons_per_layer[1] {
+                row_vec.push(weights_matrix[(j, i)]);
+            }
+            weights.push(row_vec);
+        }
+
+        // Assign weights to the last layer
+        self.weights[2] = weights;
     }
 
     pub fn predict(&mut self, input: Vec<f64>) -> Vec<f64> {
