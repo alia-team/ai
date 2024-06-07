@@ -54,7 +54,7 @@ impl RBF {
                 let mut min_dist = f64::MAX;
                 let mut min_index = 0;
                 for (i, centroid) in self.centroids.iter().enumerate() {
-                    let dist = euclidean_distance(point, &centroid.coordinates);
+                    let dist = euclidean_distance(point.clone(), centroid.coordinates.clone());
                     if dist < min_dist {
                         min_dist = dist;
                         min_index = i;
@@ -66,7 +66,7 @@ impl RBF {
             // Update step
             for (i, cluster) in clusters.iter().enumerate() {
                 if !cluster.is_empty() {
-                    let new_centroid = compute_centroid(cluster);
+                    let new_centroid = compute_centroid(cluster.clone());
                     self.centroids[i] = Centroid::new(new_centroid);
                 }
             }
@@ -74,7 +74,7 @@ impl RBF {
     }
 }
 
-fn euclidean_distance(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
+fn euclidean_distance(a: Vec<f64>, b: Vec<f64>) -> f64 {
     a.iter()
         .zip(b.iter())
         .map(|(x, y)| (x - y).powi(2))
@@ -82,9 +82,9 @@ fn euclidean_distance(a: &Vec<f64>, b: &Vec<f64>) -> f64 {
         .sqrt()
 }
 
-fn compute_centroid(cluster: &Vec<Vec<f64>>) -> Vec<f64> {
+fn compute_centroid(cluster: Vec<Vec<f64>>) -> Vec<f64> {
     let mut centroid = vec![0.0; cluster[0].len()];
-    for point in cluster {
+    for point in cluster.clone() {
         for (i, value) in point.iter().enumerate() {
             centroid[i] += value;
         }
