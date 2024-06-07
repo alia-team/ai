@@ -21,3 +21,19 @@ pub fn image_to_vector(image_path: &str) -> Result<Vec<f64>, ImageError> {
     }
     Ok(pixel_values)
 }
+
+pub fn get_all_images_in_folder(folder_path: &str) -> Result<Vec<Vec<f64>>, ImageError> {
+    let paths = std::fs::read_dir(folder_path).expect("Failed to read directory");
+
+    let mut images = Vec::new();
+
+    for path in paths {
+        let path = path.expect("Failed to get path").path();
+        let path_str = path.to_str().expect("Failed to convert path to string");
+
+        let image = image_to_vector(path_str)?;
+        images.push(image);
+    }
+
+    Ok(images)
+}
