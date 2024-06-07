@@ -1,8 +1,9 @@
+extern crate rand;
 use crate::activation::sign;
 use crate::utils;
-extern crate rand;
 use nalgebra::*;
 use rand::Rng;
+use std::{ptr, slice};
 
 #[derive(Debug, PartialEq)]
 pub struct Center {
@@ -43,7 +44,7 @@ impl NaiveRBF {
     pub fn new(
         neurons_per_layer: Vec<usize>,
         is_classification: bool,
-        dataset: Vec<Vec<f64>>,
+        training_dataset: Vec<Vec<f64>>,
     ) -> Self {
         if neurons_per_layer.len() != 3 {
             panic!("A RBF neural network must contain only 3 layers.")
@@ -53,7 +54,7 @@ impl NaiveRBF {
         let mut centers: Vec<Center> = vec![];
         for _ in 0..neurons_per_layer[1] {
             centers.push(Center::new(
-                dataset[rand::thread_rng().gen_range(0..dataset.len())].clone(),
+                training_dataset[rand::thread_rng().gen_range(0..training_dataset.len())].clone(),
             ));
         }
 
@@ -145,4 +146,102 @@ impl NaiveRBF {
 
         self.outputs[2].clone()
     }
+}
+
+/// # Safety
+///
+/// This function assumes that the pointers `neurons_per_layer` and `training_dataset`
+/// are valid and that they point to arrays of `layers_count` and `rows` elements respectively.
+/// Each element of the `training_dataset` should be a pointer to an array of `cols` elements.
+/// The caller must ensure that these conditions are met to avoid undefined behavior.
+#[no_mangle]
+pub unsafe extern "C" fn new_naive_rbf(
+    neurons_per_layer: *const usize,
+    layers_count: usize,
+    is_classification: bool,
+    training_dataset: *const *const f64,
+    rows: usize,
+    cols: usize,
+) -> *mut NaiveRBF {
+    // Convert neurons_per_layer to Vec<usize>
+    let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
+    let npl_vec: Vec<usize> = npl_slice.to_vec();
+
+    // Convert training_dataset to Vec<Vec<f64>>
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
+    for i in 0..rows {
+        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*training_dataset.add(i), cols) };
+        training_dataset_vec.push(row_slice.to_vec());
+    }
+
+    let naive_rbf: NaiveRBF = NaiveRBF::new(npl_vec, is_classification, training_dataset_vec);
+    let boxed_naive_rbf: Box<NaiveRBF> = Box::new(naive_rbf);
+
+    Box::leak(boxed_naive_rbf)
+}
+
+/// # Safety
+///
+/// This function assumes that the pointers `training_dataset` and `labels` are valid and
+/// point to arrays of `training_dataset_len` and `labels_len` elements respectively.
+/// Each element of the `training_dataset` should be a pointer to an array of `samples_len` elements.
+/// The caller must ensure that these conditions are met to avoid undefined behavior.
+#[no_mangle]
+pub unsafe extern "C" fn fit_naive_rbf(
+    naive_rbf_ptr: *mut NaiveRBF,
+    training_dataset: *const *const f64,
+    training_dataset_nrows: usize,
+    training_dataset_ncols: usize,
+    labels: *const *const f64,
+    labels_nrows: usize,
+    labels_ncols: usize,
+) {
+    // Convert training_dataset to Vec<Vec<f64>>
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
+    for i in 0..training_dataset_nrows {
+        let row_slice: &[f64] =
+            unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
+        training_dataset_vec.push(row_slice.to_vec());
+    }
+
+    // Convert labels to Vec<Vec<f64>>
+    let mut labels_vec: Vec<Vec<f64>> = Vec::with_capacity(labels_nrows);
+    for i in 0..labels_nrows {
+        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
+        labels_vec.push(row_slice.to_vec());
+    }
+
+    if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
+        naive_rbf.fit(training_dataset_vec, labels_vec);
+    }
+}
+
+/// # Safety
+///
+/// This function assumes that the pointer `input` is valid and points to an array of `input_len` elements.
+/// The caller must ensure that this condition is met to avoid undefined behavior.
+#[no_mangle]
+pub unsafe extern "C" fn predict_naive_rbf(
+    naive_rbf_ptr: *mut NaiveRBF,
+    input: *const f64,
+    input_len: usize,
+) -> *const f64 {
+    // Convert input to Vec<f64>
+    let input_slice: &[f64] = unsafe { slice::from_raw_parts(input, input_len) };
+    let input_vec: Vec<f64> = input_slice.to_vec();
+
+    if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
+        naive_rbf.predict(input_vec).as_ptr()
+    } else {
+        ptr::null()
+    }
+}
+
+/// # Safety
+///
+/// This function assumes that the pointer `naive_rbf_ptr` is valid and points to a valid `NaiveRBF` instance.
+/// The caller must ensure that this condition is met to avoid undefined behavior.
+#[no_mangle]
+pub unsafe extern "C" fn free_naive_rbf(naive_rbf_ptr: *mut NaiveRBF) {
+    let _ = unsafe { Box::from_raw(naive_rbf_ptr) };
 }
