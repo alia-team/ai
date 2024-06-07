@@ -21,13 +21,13 @@ fn build_dataset(size: usize, clusters_count: usize) -> Vec<Vec<f64>> {
     dataset
 }
 
-fn build_labels(size: usize, classes: Vec<f64>) -> Vec<f64> {
-    let mut labels: Vec<f64> = vec![];
+fn build_labels(size: usize, classes: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
+    let mut labels: Vec<Vec<f64>> = vec![];
     let classes_count: usize = classes.len();
 
     for class in classes {
         for _ in 0..(size / classes_count) {
-            labels.push(class)
+            labels.push(class.clone())
         }
     }
 
@@ -92,9 +92,9 @@ fn rbf_new() {
 fn rbf_fit() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
-    let classes: Vec<f64> = vec![1.0, -1.0];
+    let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
     let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let labels: Vec<f64> = build_labels(dataset_size, classes);
+    let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
     let output_layer_neurons_count: usize = 1;
     let mut rbf: NaiveRBF = NaiveRBF::new(
         vec![2, dataset_size, output_layer_neurons_count],

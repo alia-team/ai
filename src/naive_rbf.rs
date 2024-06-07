@@ -71,7 +71,7 @@ impl NaiveRBF {
         }
     }
 
-    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<f64>) {
+    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<Vec<f64>>) {
         let n_samples = training_dataset.len();
         let feature_len = training_dataset[0].len();
 
@@ -96,7 +96,12 @@ impl NaiveRBF {
         };
 
         // Construct Y vector
-        let y = DVector::from_vec(labels);
+        let mut y = DMatrix::zeros(labels.len(), labels[0].len());
+        for i in 0..labels.len() {
+            for j in 0..labels[0].len() {
+                y[(i, j)] = labels[i][j];
+            }
+        }
 
         // Compute weights
         let weights_matrix = phi_inv * y;
