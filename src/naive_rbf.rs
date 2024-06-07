@@ -30,7 +30,7 @@ impl Center {
     }
 }
 
-pub struct RBF {
+pub struct NaiveRBF {
     pub neurons_per_layer: Vec<usize>,
     pub centers: Vec<Center>,
     pub weights: Vec<Vec<Vec<f64>>>,
@@ -39,7 +39,7 @@ pub struct RBF {
     pub is_classification: bool,
 }
 
-impl RBF {
+impl NaiveRBF {
     pub fn new(
         neurons_per_layer: Vec<usize>,
         is_classification: bool,
@@ -61,7 +61,7 @@ impl RBF {
         let outputs = utils::init_outputs(neurons_per_layer.clone(), true);
         let gamma = rand::thread_rng().gen_range(0.01..=1.0);
 
-        RBF {
+        NaiveRBF {
             neurons_per_layer,
             centers,
             weights,
@@ -71,7 +71,7 @@ impl RBF {
         }
     }
 
-    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<f64>) {
+    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<Vec<f64>>) {
         let n_samples = training_dataset.len();
         let feature_len = training_dataset[0].len();
 
@@ -96,7 +96,12 @@ impl RBF {
         };
 
         // Construct Y vector
-        let y = DVector::from_vec(labels);
+        let mut y = DMatrix::zeros(labels.len(), labels[0].len());
+        for i in 0..labels.len() {
+            for j in 0..labels[0].len() {
+                y[(i, j)] = labels[i][j];
+            }
+        }
 
         // Compute weights
         let weights_matrix = phi_inv * y;
