@@ -21,3 +21,9 @@ fn image_to_vector() {
     );
 }
 
+#[test]
+fn get_all_images_in_folder() {
+    let folder_path = "tests/test_images/835253834";
+    let images = data_processing::get_all_images_in_folder(folder_path).unwrap();
+    assert_eq!(images.len(), 541);
+}
