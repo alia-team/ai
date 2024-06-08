@@ -1,6 +1,7 @@
 use std::ffi::CString;
 use std::slice;
 use ai::data_processing;
+use std::ffi::CStr;
 
 
 #[test]
@@ -24,7 +25,7 @@ fn image_to_vector() {
 
 #[test]
 fn get_all_images_in_folder() {
-    let folder_path = CString::new("tests\\test_images\\835253834").unwrap();
+    let folder_path = CString::new("tests\\test_images").unwrap();
     let images_ptr = unsafe {
         data_processing::get_all_images_in_folder(folder_path.as_ptr())
     };
