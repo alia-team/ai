@@ -1,10 +1,13 @@
 use image::{GenericImageView, Pixel};
-use std::ffi::CStr;
+use std::collections::HashMap;
+use std::ffi::{CStr, CString};
+use std::os::raw::c_char;
+use std::path::Path;
 use std::str;
 
 #[no_mangle]
-pub extern "C" fn image_to_vector(image_path: *const i8) -> *mut f64 {
-    let c_str = unsafe { std::ffi::CStr::from_ptr(image_path) };
+pub extern "C" fn image_to_vector(image_path: *const c_char) -> *mut f64 {
+    let c_str = unsafe { CStr::from_ptr(image_path) };
     let mut path = String::from(c_str.to_str().unwrap());
 
     let img = match image::open(&path) {
@@ -35,41 +38,32 @@ pub extern "C" fn image_to_vector(image_path: *const i8) -> *mut f64 {
 }
 
 #[no_mangle]
-pub extern "C" fn get_all_images_in_folder(folder_path: *const i8) -> *mut *mut f64 {
+pub extern "C" fn get_all_images_in_folder(folder_path: *const c_char) -> *mut HashMap<*mut f64, *mut c_char> {
     let c_str = unsafe { CStr::from_ptr(folder_path) };
-    let mut path = String::from(str::from_utf8(c_str.to_bytes()).unwrap());
+    let mut path = String::from(c_str.to_str().unwrap());
 
-    let paths = match std::fs::read_dir(&path) {
-        Ok(paths) => paths,
-        Err(err) => {
-            println!("Error while reading directory {}: {}", path, err);
-            path.clear();
-            return std::ptr::null_mut();
-        }
-    };
+    let mut images_and_labels = HashMap::new();
 
-    let mut images = Vec::new();
+    for entry in std::fs::read_dir(&path).unwrap() {
+        let entry = entry.unwrap();
+        let path = entry.path();
 
-    for path in paths {
-        let path = match path {
-            Ok(path) => path.path(),
-            Err(err) => {
-                println!("Error while reading path: {}", err);
-                continue;
+        if path.is_dir() {
+            let label = CString::new(path.file_name().unwrap().to_str().unwrap()).unwrap();
+            let label_ptr = label.into_raw();
+
+            for image_path in std::fs::read_dir(path).unwrap() {
+                let image_path = image_path.unwrap().path();
+                let image_ptr = image_to_vector(image_path.to_str().unwrap().as_ptr() as *const c_char);
+                if !image_ptr.is_null() {
+                    images_and_labels.insert(image_ptr, label_ptr);
+                }
             }
-        };
-        let mut path_str = path.to_str().unwrap().to_owned();
-
-        let image_ptr = image_to_vector(path_str.as_ptr() as *const i8);
-        if !image_ptr.is_null() {
-            images.push(image_ptr);
         }
-
-        path_str.clear();
     }
 
     path.clear();
 
-    let images_raw = images.into_boxed_slice();
-    Box::into_raw(images_raw) as *mut *mut f64
+    let images_and_labels_raw = Box::new(images_and_labels);
+    Box::into_raw(images_and_labels_raw) as *mut HashMap<*mut f64, *mut c_char>
 }
