@@ -32,6 +32,7 @@ lib.fit_rbf.argtypes = [
     POINTER(POINTER(c_double)),
     c_size_t,
     c_size_t,
+    c_double,
     c_size_t
 ]
 lib.fit_rbf.restype = None
@@ -83,7 +84,7 @@ class RBF:
             self.training_dataset_ncols
         )
 
-    def fit(self, max_iterations: int) -> None:
+    def fit(self, gamma: float, max_iterations: int) -> None:
         lib.fit_rbf(
             self.model,
             self.training_dataset,
@@ -92,6 +93,7 @@ class RBF:
             self.labels,
             self.labels_nrows,
             self.labels_ncols,
+            gamma,
             max_iterations
         )
 
@@ -122,8 +124,9 @@ if __name__ == "__main__":
         labels
     )
 
+    gamma: float = 0.01
     max_iterations: int = 100
-    rbf.fit(max_iterations)
+    rbf.fit(gamma, max_iterations)
 
     input = [1.0, 1.0]
     print(rbf.predict(input))
