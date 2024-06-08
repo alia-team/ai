@@ -75,8 +75,10 @@ impl RBF {
         &mut self,
         training_dataset: Vec<Vec<f64>>,
         labels: Vec<Vec<f64>>,
+        gamma: f64,
         max_iterations: usize,
     ) {
+        self.gamma = gamma;
         self._lloyds_algorithm(training_dataset.clone(), max_iterations);
         self._update_weights(training_dataset, labels);
     }
@@ -243,6 +245,7 @@ pub unsafe extern "C" fn fit_rbf(
     labels: *const *const f64,
     labels_nrows: usize,
     labels_ncols: usize,
+    gamma: f64,
     max_iterations: usize,
 ) {
     // Convert training_dataset to Vec<Vec<f64>>
@@ -261,7 +264,7 @@ pub unsafe extern "C" fn fit_rbf(
     }
 
     if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
-        rbf.fit(training_dataset_vec, labels_vec, max_iterations);
+        rbf.fit(training_dataset_vec, labels_vec, gamma, max_iterations);
     }
 }
 
