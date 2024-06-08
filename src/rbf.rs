@@ -246,3 +246,20 @@ pub unsafe extern "C" fn fit_rbf(
         rbf.fit(training_dataset_vec, labels_vec, max_iterations);
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn predict_rbf(
+    rbf_ptr: *mut RBF,
+    input: *const f64,
+    input_len: usize,
+) -> *const f64 {
+    // Convert input to Vec<f64>
+    let input_slice: &[f64] = unsafe { slice::from_raw_parts(input, input_len) };
+    let input_vec: Vec<f64> = input_slice.to_vec();
+
+    if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
+        rbf.predict(input_vec).as_ptr()
+    } else {
+        ptr::null()
+    }
+}
