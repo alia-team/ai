@@ -189,6 +189,15 @@ impl RBF {
     }
 }
 
+/// # Safety
+///
+/// This function assumes that the pointers `neurons_per_layer` and
+/// `training_dataset` are valid and that they point to arrays of `layers_count`
+/// and `training_dataset_nrows` elements respectively.
+/// Each element of the `training_dataset` should be a pointer to an array of
+/// `training_dataset_ncols` elements.
+/// The caller must ensure that these conditions are met to avoid undefined
+/// behavior.
 #[no_mangle]
 pub unsafe extern "C" fn new_rbf(
     neurons_per_layer: *const usize,
@@ -216,6 +225,15 @@ pub unsafe extern "C" fn new_rbf(
     Box::leak(boxed_rbf)
 }
 
+/// # Safety
+///
+/// This function assumes that the pointers `training_dataset` and `labels` are
+/// valid and point to arrays of `training_dataset_nrows` and `labels_len`
+/// elements respectively.
+/// Each element of the `training_dataset` should be a pointer to an array of
+/// `training_dataset_ncols` elements.
+/// The caller must ensure that these conditions are met to avoid undefined
+/// behavior.
 #[no_mangle]
 pub unsafe extern "C" fn fit_rbf(
     rbf_ptr: *mut RBF,
@@ -247,6 +265,13 @@ pub unsafe extern "C" fn fit_rbf(
     }
 }
 
+/// # Safety
+///
+/// This function assumes that the pointers `rbf_ptr` and `input` are valid and
+/// points to a valid `RBF` instance and to an array of `input_len` elements
+/// respectively.
+/// The caller must ensure that these conditions are met to avoid undefined
+/// behavior.
 #[no_mangle]
 pub unsafe extern "C" fn predict_rbf(
     rbf_ptr: *mut RBF,
@@ -264,6 +289,12 @@ pub unsafe extern "C" fn predict_rbf(
     }
 }
 
+/// # Safety
+///
+/// This function assumes that the pointer `rbf_ptr` is valid and points to a
+/// valid `RBF` instance.
+/// The caller must ensure that this condition is met to avoid undefined
+/// behavior.
 #[no_mangle]
 pub unsafe extern "C" fn free_rbf(rbf_ptr: *mut RBF) {
     let _ = unsafe { Box::from_raw(rbf_ptr) };
