@@ -117,7 +117,7 @@ impl MLP {
                     total *= 1.0 - self.X[l - 1][i].powi(2);
                     self.deltas[l - 1][i] = total;
                 }
-            }
+            }            
 
             for l in 1..=self.L {
                 for i in 0..=self.d[l - 1] {
@@ -180,7 +180,7 @@ pub extern "C" fn mlp_train(
         is_classification,
     );
 
-    save_weights(&mlp_ref, "weights.txt").unwrap();
+    //save_weights(&mlp_ref, "weights.txt").unwrap();
 }
 
 #[no_mangle]
@@ -190,19 +190,19 @@ pub extern "C" fn mlp_free(mlp: *mut MLP) {
     }
 }
 
-fn save_weights(model: &MLP, filename: &str) -> std::io::Result<()> {
-    let mut file = File::create(filename)?;
+// fn save_weights(model: &MLP, filename: &str) -> std::io::Result<()> {
+//     let mut file = File::create(filename)?;
 
-    writeln!(file, "{} {}", model.L, model.d[0])?;
+//     writeln!(file, "{} {}", model.L, model.d[0])?;
 
-    for l in 1..model.L {
-        for j in 0..model.d[l] {
-            for i in 0..model.d[l - 1] {
-                writeln!(file, "{}", model.W[l - 1][j][i])?;
-            }
-            writeln!(file, "{}", model.W[l][model.d[l - 1]][j])?;
-        }
-    }
+//     for l in 1..model.L {
+//         for j in 0..model.d[l] {
+//             for i in 0..model.d[l - 1] {
+//                 writeln!(file, "{}", model.W[l - 1][j][i])?;
+//             }
+//             writeln!(file, "{}", model.W[l][model.d[l - 1]][j])?;
+//         }
+//     }
 
-    Ok(())
-}
+//     Ok(())
+// }
