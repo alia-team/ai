@@ -263,3 +263,8 @@ pub unsafe extern "C" fn predict_rbf(
         ptr::null()
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn free_rbf(rbf_ptr: *mut RBF) {
+    let _ = unsafe { Box::from_raw(rbf_ptr) };
+}
