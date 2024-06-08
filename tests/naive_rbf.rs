@@ -101,6 +101,7 @@ fn naive_rbf_fit() {
     let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
     let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
+    let gamma: f64 = 0.01;
     let output_layer_neurons_count: usize = 1;
     let mut naive_rbf: NaiveRBF = NaiveRBF::new(
         vec![2, dataset_size, output_layer_neurons_count],
@@ -108,7 +109,7 @@ fn naive_rbf_fit() {
         training_dataset.clone(),
     );
 
-    naive_rbf.fit(training_dataset, labels);
+    naive_rbf.fit(training_dataset, labels, gamma);
 
     assert_eq!(naive_rbf.weights.len(), 3);
     assert_eq!(naive_rbf.weights[2].len(), output_layer_neurons_count);
