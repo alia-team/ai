@@ -190,7 +190,7 @@ impl RBF {
 }
 
 #[no_mangle]
-pub extern "C" fn new_rbf(
+pub unsafe extern "C" fn new_rbf(
     neurons_per_layer: *const usize,
     layers_count: usize,
     is_classification: bool,
@@ -214,4 +214,35 @@ pub extern "C" fn new_rbf(
     let boxed_rbf: Box<RBF> = Box::new(rbf);
 
     Box::leak(boxed_rbf)
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn fit_rbf(
+    rbf_ptr: *mut RBF,
+    training_dataset: *const *const f64,
+    training_dataset_nrows: usize,
+    training_dataset_ncols: usize,
+    labels: *const *const f64,
+    labels_nrows: usize,
+    labels_ncols: usize,
+    max_iterations: usize,
+) {
+    // Convert training_dataset to Vec<Vec<f64>>
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
+    for i in 0..training_dataset_nrows {
+        let row_slice: &[f64] =
+            unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
+        training_dataset_vec.push(row_slice.to_vec());
+    }
+
+    // Convert labels to Vec<Vec<f64>>
+    let mut labels_vec: Vec<Vec<f64>> = Vec::with_capacity(labels_nrows);
+    for i in 0..labels_nrows {
+        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
+        labels_vec.push(row_slice.to_vec());
+    }
+
+    if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
+        rbf.fit(training_dataset_vec, labels_vec, max_iterations);
+    }
 }
