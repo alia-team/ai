@@ -1,6 +1,7 @@
 import ctypes
 import numpy as np
 import platform
+from data_processing import get_all_images_in_folder
 
 # Determine the correct shared library filename based on the operating system
 system = platform.system()
@@ -57,23 +58,25 @@ class MLP:
         lib.mlp_free(self.mlp)
 
 # Example usage:
+images = get_all_images_in_folder("datatest")
+labels = []
+inputs = []
+for label, image_vector_ptrs in images.items():
+    labels += [label] * len(image_vector_ptrs)
+    for image_vector_ptr in image_vector_ptrs:
+        image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
+        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 3,)))
+
 if __name__ == "__main__":
-    npl = (2, 1)
+    npl = (100 * 100 * 3, 2, 3)
     mlp = MLP(npl)
+
+    labels = [[1.0, -1.0, -1.0] if label == 'phidippus' else [-1.0, 1.0, -1.0] if label == 'tegenaria' else [-1.0, -1.0, 1.0] for label in labels]
     
-    training_dataset = [
-        [0.0, 0.0],
-        [0.0, 1.0],
-        [1.0, 0.0]
-    ]
-    labels = [
-        [-1.0],
-        [1.0],
-        [1.0]
-    ]
+    print("Training...")
+    mlp.train(inputs, labels, 0.1, 10000, True)
     
-    mlp.train(training_dataset, labels, 0.1, 1000000, True)
-    
-    for k in range(len(training_dataset)):
-        output = mlp.predict(training_dataset[k], True)
-        print(output)
+    print("Predicting...")
+    for k in range(len(inputs)):
+        output = mlp.predict(inputs[k], True)
+        print("k:", k, output, labels[k])
