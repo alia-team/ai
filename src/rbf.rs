@@ -3,6 +3,7 @@ use crate::activation::sign;
 use crate::utils;
 use nalgebra::DMatrix;
 use rand::Rng;
+use std::{ptr, slice};
 
 #[derive(Debug, PartialEq)]
 pub struct Centroid {
@@ -186,4 +187,31 @@ impl RBF {
         // Assign weights to the last layer
         self.weights[2] = weights;
     }
+}
+
+#[no_mangle]
+pub extern "C" fn new_rbf(
+    neurons_per_layer: *const usize,
+    layers_count: usize,
+    is_classification: bool,
+    training_dataset: *const *const f64,
+    training_dataset_nrows: usize,
+    training_dataset_ncols: usize,
+) -> *mut RBF {
+    // Convert neurons_per_layer to Vec<usize>
+    let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
+    let npl_vec: Vec<usize> = npl_slice.to_vec();
+
+    // Convert training_dataset to Vec<Vec<f64>>
+    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
+    for i in 0..training_dataset_nrows {
+        let row_slice: &[f64] =
+            unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
+        training_dataset_vec.push(row_slice.to_vec());
+    }
+
+    let rbf: RBF = RBF::new(npl_vec, is_classification, training_dataset_vec);
+    let boxed_rbf: Box<RBF> = Box::new(rbf);
+
+    Box::leak(boxed_rbf)
 }
