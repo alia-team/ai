@@ -90,3 +90,30 @@ mlp.train(training_dataset, labels, 0.1, 1000, True)
 new_point = [1, 1]
 result = mlp.predict(new_point, True)
 print('Multi linear 3 classes:', result)
+
+
+# Linear Regression
+# MLP (1, 1)
+npl = (1, 1)
+mlp = MLP(npl)
+
+# Generate a simple linear dataset
+np.random.seed(0)
+X = np.random.rand(100, 1)
+y = 3.5 * X + np.random.randn(100, 1) * 0.2
+
+mlp.train(X, y, 0.01, 10000, False)
+
+# Test the linear regression with a new data point
+new_point = [0.5]
+result = mlp.predict(new_point, False)
+print('Linear Regression:', result)
+
+# Plotting the linear regression result
+plt.scatter(X, y, color='blue')
+predicted_y = np.array([mlp.predict(x, False) for x in X])
+plt.plot(X, predicted_y, color='red')
+plt.xlabel('X')
+plt.ylabel('y')
+plt.title('Linear Regression with MLP')
+plt.show()
