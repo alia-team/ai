@@ -9,3 +9,5 @@ target
 .vscode
 
 Cargo.lock
+datatest/
+test_images/
