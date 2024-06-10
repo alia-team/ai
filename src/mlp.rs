@@ -94,15 +94,20 @@ impl MLP {
         nb_iter: usize,
         is_classification: bool,
     ) {
-        for _ in 0..nb_iter {
+        for iter in 0..nb_iter {
             let k = rand::thread_rng().gen_range(0..all_samples_inputs.len());
             let sample_inputs = &all_samples_inputs[k];
             let sample_expected_outputs = &all_samples_expected_outputs[k];
 
             self.propagate(sample_inputs.clone(), is_classification);
 
+            let mut total_squared_error = 0.0;
+
             for j in 1..=self.d[self.L] {
                 self.deltas[self.L][j] = self.X[self.L][j] - sample_expected_outputs[j - 1];
+                if (iter % 10 == 0) {
+                    total_squared_error += self.deltas[self.L][j].powi(2);
+                }
                 if is_classification {
                     self.deltas[self.L][j] *= 1.0 - self.X[self.L][j].powi(2);
                 }
