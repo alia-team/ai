@@ -232,7 +232,7 @@ pub extern "C" fn mlp_train(
     std::mem::forget(loss_values); // Prevent Rust from freeing the vector
 
     // Create a pointer to return
-    let result = unsafe { libc::malloc(loss_values_len * std::mem::size_of::<c_double>()) as *mut c_double };
+    let result = unsafe { libc::malloc(loss_values_len * std::mem::size_of::<Vec<f64>>()) as *mut Vec<f64> };
     if result.is_null() {
         return std::ptr::null_mut();
     }
