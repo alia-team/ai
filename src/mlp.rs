@@ -98,7 +98,12 @@ impl MLP {
         is_classification: bool,
     ) -> Vec<Vec<f64>> {
         let mut loss_values: Vec<Vec<f64>> = vec![];
+        let mut percent = 0.0;
         for iter in 0..nb_iter {
+            if (iter as f64/nb_iter as f64)*100 as f64 > percent {
+                println!("{}%", percent);
+                percent+=1.0;
+            }
             if iter % 100 == 0 {
                 let mut total_squared_error_train = 0.0;
                 let mut total_squared_error_test = 0.0;
