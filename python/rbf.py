@@ -99,9 +99,8 @@ class RBF:
 
     def predict(self, input: list[float]) -> list[float]:
         ctypes_input = np.ctypeslib.as_ctypes(np.array(input, dtype=np.float64))
-
-        ctypes_output = lib.predict_rbf(self.model, ctypes_input, len(input))
-        return [ctypes_output[i] for i in range(self.neurons_per_layer[2])]
+        output_ptr = lib.predict_rbf(self.model, ctypes_input, len(input))
+        return [output_ptr[i] for i in range(self.neurons_per_layer[2])]
 
     def __del__(self) -> None:
         lib.free_rbf(self.model)
