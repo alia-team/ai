@@ -99,8 +99,7 @@ impl MLP {
     ) -> Vec<Vec<f64>> {
         let mut loss_values: Vec<Vec<f64>> = vec![];
         for iter in 0..nb_iter {
-
-            if iter % 10 == 0 {
+            if iter % 100 == 0 {
                 let mut total_squared_error_train = 0.0;
                 let mut total_squared_error_test = 0.0;
                 for iter_test in 0.. all_tests_inputs.len(){
@@ -153,7 +152,6 @@ impl MLP {
                 }
             }
         }
-        println!("{:?}", loss_values[0]);
         loss_values
     }
 }
@@ -174,6 +172,13 @@ pub extern "C" fn mlp_predict(
     output_ptr
 }
 
+#[repr(C)]
+pub struct TrainResult {
+    loss_values_ptr: *mut f64,
+    len: usize,
+    inner_len: usize,
+}
+
 #[no_mangle]
 pub extern "C" fn mlp_train(
     mlp: *mut MLP,
@@ -188,7 +193,7 @@ pub extern "C" fn mlp_train(
     alpha: c_double,
     nb_iter: usize,
     is_classification: bool,
-) -> *mut Vec<f64> {
+) -> TrainResult {
     // SAMPLE
     let all_samples_inputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_inputs, samples_count)
@@ -225,25 +230,27 @@ pub extern "C" fn mlp_train(
         nb_iter,
         is_classification,
     );
+    // Flatten the loss values
+    let flat_loss_values: Vec<f64> = loss_values.iter().flat_map(|v| v.clone()).collect();
 
-    // Convert the loss values to a raw pointer
-    let loss_values_len = loss_values.len();
-    let loss_values_ptr = loss_values.as_ptr();
-    std::mem::forget(loss_values); // Prevent Rust from freeing the vector
+    // Allocate memory for the flat_loss_values and copy data
+    let len = flat_loss_values.len();
+    let inner_len = if loss_values.is_empty() { 0 } else { loss_values[0].len() };
+    let loss_values_ptr = flat_loss_values.as_ptr();
+    std::mem::forget(flat_loss_values); // Prevent Rust from freeing the vector
 
-    // Create a pointer to return
-    let result = unsafe { libc::malloc(loss_values_len * std::mem::size_of::<Vec<f64>>()) as *mut Vec<f64> };
-    if result.is_null() {
-        return std::ptr::null_mut();
+    TrainResult {
+        loss_values_ptr: loss_values_ptr as *mut f64,
+        len,
+        inner_len,
     }
-
-    unsafe {
-        std::ptr::copy_nonoverlapping(loss_values_ptr, result, loss_values_len);
-    }
-
-    result
 }
-
+#[no_mangle]
+pub extern "C" fn free_train_result(result: TrainResult) {
+    unsafe {
+        libc::free(result.loss_values_ptr as *mut libc::c_void);
+    }
+}
 #[no_mangle]
 pub extern "C" fn mlp_free(mlp: *mut MLP) {
     unsafe {
