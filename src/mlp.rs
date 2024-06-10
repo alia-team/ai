@@ -90,6 +90,8 @@ impl MLP {
         &mut self,
         all_samples_inputs: Vec<Vec<f64>>,
         all_samples_expected_outputs: Vec<Vec<f64>>,
+        all_tests_inputs: Vec<Vec<f64>>,
+        all_tests_expected_outputs: Vec<Vec<f64>>,
         alpha: f64,
         nb_iter: usize,
         is_classification: bool,
