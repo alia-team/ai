@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate libc;
 use rand::Rng;
 use std::f64;
 use std::os::raw::c_double;
@@ -95,27 +96,27 @@ impl MLP {
         alpha: f64,
         nb_iter: usize,
         is_classification: bool,
-    )  -> Vec<Vec<f64>> {
+    ) -> Vec<Vec<f64>> {
         let mut loss_values: Vec<Vec<f64>> = vec![];
         for iter in 0..nb_iter {
 
             if iter % 10 == 0 {
                 let mut total_squared_error_train = 0.0;
                 let mut total_squared_error_test = 0.0;
-                for iter_test in 0.. all_tests_inputs.clone().len(){
+                for iter_test in 0.. all_tests_inputs.len(){
                     let values = self.predict(all_tests_inputs[iter_test].clone(), is_classification);
                     for iter_values in 0.. values.len(){
                         total_squared_error_test+= (all_tests_expected_outputs[iter_test][iter_values]-values[iter_values]).powi(2);
                     }
                 }
-                total_squared_error_test= total_squared_error_test/(all_tests_inputs.clone().len() as f64);
+                total_squared_error_test= total_squared_error_test/(all_tests_inputs.len() as f64);
                 for iter_train in 0.. all_samples_inputs.len(){
                     let values = self.predict(all_samples_inputs[iter_train].clone(), is_classification);
                     for iter_values in 0.. values.len(){
                         total_squared_error_train+= (all_samples_expected_outputs[iter_train][iter_values]-values[iter_values]).powi(2);
                     }
                 }
-                total_squared_error_train= total_squared_error_train/(all_samples_inputs.clone().len() as f64);
+                total_squared_error_train= total_squared_error_train/(all_samples_inputs.len() as f64);
 
                 loss_values.push(vec![total_squared_error_train, total_squared_error_test]);
             }
@@ -152,6 +153,7 @@ impl MLP {
                 }
             }
         }
+        println!("{:?}", loss_values[0]);
         loss_values
     }
 }
@@ -186,7 +188,7 @@ pub extern "C" fn mlp_train(
     alpha: c_double,
     nb_iter: usize,
     is_classification: bool,
-) {
+) -> *mut Vec<f64> {
     // SAMPLE
     let all_samples_inputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_inputs, samples_count)
@@ -214,7 +216,7 @@ pub extern "C" fn mlp_train(
             .collect()
     };
     let mut mlp_ref = unsafe { &mut *mlp };
-    mlp_ref.train(
+    let loss_values = mlp_ref.train(
         all_samples_inputs_vec,
         all_samples_expected_outputs_vec,
         all_tests_inputs_vec,
@@ -224,7 +226,22 @@ pub extern "C" fn mlp_train(
         is_classification,
     );
 
-    //save_weights(&mlp_ref, "weights.txt").unwrap();
+    // Convert the loss values to a raw pointer
+    let loss_values_len = loss_values.len();
+    let loss_values_ptr = loss_values.as_ptr();
+    std::mem::forget(loss_values); // Prevent Rust from freeing the vector
+
+    // Create a pointer to return
+    let result = unsafe { libc::malloc(loss_values_len * std::mem::size_of::<c_double>()) as *mut c_double };
+    if result.is_null() {
+        return std::ptr::null_mut();
+    }
+
+    unsafe {
+        std::ptr::copy_nonoverlapping(loss_values_ptr, result, loss_values_len);
+    }
+
+    result
 }
 
 #[no_mangle]
@@ -233,20 +250,3 @@ pub extern "C" fn mlp_free(mlp: *mut MLP) {
         let _ = Box::from_raw(mlp);
     }
 }
-
-// fn save_weights(model: &MLP, filename: &str) -> std::io::Result<()> {
-//     let mut file = File::create(filename)?;
-
-//     writeln!(file, "{} {}", model.L, model.d[0])?;
-
-//     for l in 1..model.L {
-//         for j in 0..model.d[l] {
-//             for i in 0..model.d[l - 1] {
-//                 writeln!(file, "{}", model.W[l - 1][j][i])?;
-//             }
-//             writeln!(file, "{}", model.W[l][model.d[l - 1]][j])?;
-//         }
-//     }
-
-//     Ok(())
-// }

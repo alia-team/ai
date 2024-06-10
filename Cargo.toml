@@ -10,3 +10,4 @@ crate-type = ["cdylib", "lib"]
 rand = "0.8.5"
 image = "0.25.1"
 nalgebra = "0.32.5"
+libc = "0.2.155"
