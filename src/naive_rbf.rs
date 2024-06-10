@@ -72,7 +72,8 @@ impl NaiveRBF {
         }
     }
 
-    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<Vec<f64>>) {
+    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<Vec<f64>>, gamma: f64) {
+        self.gamma = gamma;
         let n_samples = training_dataset.len();
         let feature_len = training_dataset[0].len();
 
@@ -195,6 +196,7 @@ pub unsafe extern "C" fn fit_naive_rbf(
     labels: *const *const f64,
     labels_nrows: usize,
     labels_ncols: usize,
+    gamma: f64,
 ) {
     // Convert training_dataset to Vec<Vec<f64>>
     let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
@@ -212,7 +214,7 @@ pub unsafe extern "C" fn fit_naive_rbf(
     }
 
     if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
-        naive_rbf.fit(training_dataset_vec, labels_vec);
+        naive_rbf.fit(training_dataset_vec, labels_vec, gamma);
     }
 }
 
@@ -231,7 +233,10 @@ pub unsafe extern "C" fn predict_naive_rbf(
     let input_vec: Vec<f64> = input_slice.to_vec();
 
     if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
-        naive_rbf.predict(input_vec).as_ptr()
+        let output = naive_rbf.predict(input_vec);
+        let output_ptr = output.as_ptr();
+        std::mem::forget(output);
+        output_ptr
     } else {
         ptr::null()
     }
