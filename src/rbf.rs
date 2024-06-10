@@ -286,7 +286,10 @@ pub unsafe extern "C" fn predict_rbf(
     let input_vec: Vec<f64> = input_slice.to_vec();
 
     if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
-        rbf.predict(input_vec).as_ptr()
+        let output = rbf.predict(input_vec);
+        let output_ptr = output.as_ptr();
+        std::mem::forget(output);
+        output_ptr
     } else {
         ptr::null()
     }

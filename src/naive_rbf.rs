@@ -233,7 +233,10 @@ pub unsafe extern "C" fn predict_naive_rbf(
     let input_vec: Vec<f64> = input_slice.to_vec();
 
     if let Some(naive_rbf) = unsafe { naive_rbf_ptr.as_mut() } {
-        naive_rbf.predict(input_vec).as_ptr()
+        let output = naive_rbf.predict(input_vec);
+        let output_ptr = output.as_ptr();
+        std::mem::forget(output);
+        output_ptr
     } else {
         ptr::null()
     }
