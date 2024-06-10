@@ -194,14 +194,12 @@ pub extern "C" fn mlp_train(
             .map(|&input_ptr| std::slice::from_raw_parts(input_ptr, sample_inputs_len).to_vec())
             .collect()
     };
-
     let all_samples_expected_outputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_expected_outputs, samples_count)
             .iter()
             .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, (*mlp).d[(*mlp).L]).to_vec())
             .collect()
     };
-
     // TEST
     let all_tests_inputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_tests_inputs, tests_count)
@@ -209,14 +207,12 @@ pub extern "C" fn mlp_train(
             .map(|&input_ptr| std::slice::from_raw_parts(input_ptr, test_inputs_len).to_vec())
             .collect()
     };
-
     let all_tests_expected_outputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_tests_expected_outputs, tests_count)
             .iter()
             .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, (*mlp).d[(*mlp).L]).to_vec())
             .collect()
     };
-
     let mut mlp_ref = unsafe { &mut *mlp };
     mlp_ref.train(
         all_samples_inputs_vec,
