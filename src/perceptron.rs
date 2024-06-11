@@ -17,7 +17,7 @@ impl Perceptron {
 
     pub fn fit(&mut self, data_points: &[Vec<c_double>], class_labels: &[c_double], iterations: usize, learning_rate: c_double) {
         let mut rng = rand::thread_rng();
-        for iter in 0..iterations {
+        for _ in 0..iterations {
             let random_index = rng.gen_range(0..data_points.len());
             let target_label = class_labels[random_index];
             let mut input = vec![1.0];

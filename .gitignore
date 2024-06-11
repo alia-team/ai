@@ -11,4 +11,3 @@ target
 Cargo.lock
 datatest/
 test_images/
-src/
