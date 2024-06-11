@@ -30,3 +30,4 @@
 
 Après avoir mieux analysé notre dataset nous nous sommes rendu compte que notre résultat était erroné car toutes les données étaient triées et nous prenions seulement les 300 dernières images pour le test, qui était tout de la même espece. Le dataset était donc non régulier ce qui explique ces résultats.
 
+Actuellement nous travaillons pour récupérer des images au hasard dans le dataset pour le train et le test avec le même nombre d'images pour chacun espoece en elle-même dans le test et dans le train
