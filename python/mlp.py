@@ -2,6 +2,7 @@ import ctypes
 import numpy as np
 import platform
 from data_processing import get_all_images_in_folder
+import matplotlib.pyplot as plt
 
 # Determine the correct shared library filename based on the operating system
 system = platform.system()
@@ -82,26 +83,32 @@ class MLP:
     def __del__(self):
         lib.mlp_free(self.mlp)
 
-# # Example usage:
-# images = get_all_images_in_folder("datatest")
-# labels = []
-# inputs = []
-# for label, image_vector_ptrs in images.items():
-#     labels += [label] * len(image_vector_ptrs)
-#     for image_vector_ptr in image_vector_ptrs:
-#         image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
-#         inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 3,)))
+# Example usage:
+images = get_all_images_in_folder("datatest")
+labels = []
+inputs = []
+for label, image_vector_ptrs in images.items():
+    labels += [label] * len(image_vector_ptrs)
+    for image_vector_ptr in image_vector_ptrs:
+        image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
+        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 3,)))
 
-# if __name__ == "__main__":
-#     npl = (100 * 100 * 3, 2, 3)
-#     mlp = MLP(npl)
+if __name__ == "__main__":
+    npl = (100 * 100 * 3, 2, 3)
+    mlp = MLP(npl)
 
-#     labels = [[1.0, -1.0, -1.0] if label == 'phidippus' else [-1.0, 1.0, -1.0] if label == 'tegenaria' else [-1.0, -1.0, 1.0] for label in labels]
+    labels = [[1.0, -1.0, -1.0] if label == 'phidippus' else [-1.0, 1.0, -1.0] if label == 'tegenaria' else [-1.0, -1.0, 1.0] for label in labels]
     
-#     print("Training...")
-#     mlp.train(inputs, labels, 0.1, 10000, True)
+    print("Training...")
+    res = mlp.train(inputs, labels, 0.1, 10000, True)
     
-#     print("Predicting...")
-#     for k in range(len(inputs)):
-#         output = mlp.predict(inputs[k], True)
-#         print("k:", k, output, labels[k])
+    # print("Predicting...")
+    # for k in range(len(inputs)):
+    #     output = mlp.predict(inputs[k], True)
+    #     print("k:", k, output, labels[k])
+    plt.plot([i*100 for i in range(len(res))], [r[0] for r in res], color='blue')
+    plt.plot([i*100 for i in range(len(res))], [r[1] for r in res], color='red')
+    plt.legend(['train dataset', 'test dataset'])
+    plt.title('XOR')
+    plt.show()
+    plt.clf()
