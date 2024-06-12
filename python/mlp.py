@@ -1,7 +1,7 @@
 import ctypes
 import numpy as np
 import platform
-from data_processing import get_all_images_in_folder
+from data_processing import get_all_images_in_folder, convert_rgb_vectors_to_palette
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 
@@ -161,6 +161,8 @@ for label, image_vector_ptrs in images.items():
     for image_vector_ptr in image_vector_ptrs:
         image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
         inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 3,)))
+
+inputs = convert_rgb_vectors_to_palette(inputs)
 
 if __name__ == "__main__":
     npl = (100 * 100 * 1, 5, 3)
