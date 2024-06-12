@@ -31,7 +31,8 @@ lib.fit_naive_rbf.argtypes = [
     c_size_t,
     POINTER(POINTER(c_double)),
     c_size_t,
-    c_size_t
+    c_size_t,
+    c_double
 ]
 lib.fit_naive_rbf.restype = None
 
@@ -81,7 +82,7 @@ class NaiveRBF:
             self.training_dataset_ncols
         )
 
-    def fit(self) -> None:
+    def fit(self, gamma: float) -> None:
         lib.fit_naive_rbf(
             self.model,
             self.training_dataset,
@@ -89,7 +90,8 @@ class NaiveRBF:
             self.training_dataset_ncols,
             self.labels,
             self.labels_nrows,
-            self.labels_ncols
+            self.labels_ncols,
+            gamma
         )
 
     def predict(self, input: list[float]) -> list[float]:
@@ -107,7 +109,8 @@ if __name__ == "__main__":
     neurons_per_layer = [2, 4, 1]
     naive_rbf: NaiveRBF = NaiveRBF(neurons_per_layer, True, training_dataset, labels)
 
-    naive_rbf.fit()
+    gamma: float = 0.01
+    naive_rbf.fit(gamma)
 
     input = [1.0, 1.0]
     print(naive_rbf.predict(input))

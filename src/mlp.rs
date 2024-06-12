@@ -1,4 +1,5 @@
 extern crate rand;
+extern crate libc;
 use rand::Rng;
 use std::f64;
 use std::os::raw::c_double;
@@ -90,16 +91,45 @@ impl MLP {
         &mut self,
         all_samples_inputs: Vec<Vec<f64>>,
         all_samples_expected_outputs: Vec<Vec<f64>>,
+        all_tests_inputs: Vec<Vec<f64>>,
+        all_tests_expected_outputs: Vec<Vec<f64>>,
         alpha: f64,
         nb_iter: usize,
         is_classification: bool,
-    ) {
-        for _ in 0..nb_iter {
+    ) -> Vec<Vec<f64>> {
+        let mut loss_values: Vec<Vec<f64>> = vec![];
+        let mut percent = 0.0;
+        for iter in 0..nb_iter {
+            if (iter as f64/nb_iter as f64)*100 as f64 > percent {
+                println!("{}%", percent);
+                percent+=1.0;
+            }
+            if iter % 100 == 0 {
+                let mut total_squared_error_train = 0.0;
+                let mut total_squared_error_test = 0.0;
+                for iter_test in 0.. all_tests_inputs.len(){
+                    let values = self.predict(all_tests_inputs[iter_test].clone(), is_classification);
+                    for iter_values in 0.. values.len(){
+                        total_squared_error_test+= (all_tests_expected_outputs[iter_test][iter_values]-values[iter_values]).powi(2);
+                    }
+                }
+                total_squared_error_test= total_squared_error_test/(all_tests_inputs.len() as f64);
+                for iter_train in 0.. all_samples_inputs.len(){
+                    let values = self.predict(all_samples_inputs[iter_train].clone(), is_classification);
+                    for iter_values in 0.. values.len(){
+                        total_squared_error_train+= (all_samples_expected_outputs[iter_train][iter_values]-values[iter_values]).powi(2);
+                    }
+                }
+                total_squared_error_train= total_squared_error_train/(all_samples_inputs.len() as f64);
+
+                loss_values.push(vec![total_squared_error_train, total_squared_error_test]);
+            }
             let k = rand::thread_rng().gen_range(0..all_samples_inputs.len());
             let sample_inputs = &all_samples_inputs[k];
             let sample_expected_outputs = &all_samples_expected_outputs[k];
 
             self.propagate(sample_inputs.clone(), is_classification);
+
 
             for j in 1..=self.d[self.L] {
                 self.deltas[self.L][j] = self.X[self.L][j] - sample_expected_outputs[j - 1];
@@ -127,6 +157,7 @@ impl MLP {
                 }
             }
         }
+        loss_values
     }
 }
 
@@ -146,63 +177,88 @@ pub extern "C" fn mlp_predict(
     output_ptr
 }
 
+#[repr(C)]
+pub struct TrainResult {
+    loss_values_ptr: *mut f64,
+    len: usize,
+    inner_len: usize,
+}
+
 #[no_mangle]
 pub extern "C" fn mlp_train(
     mlp: *mut MLP,
     all_samples_inputs: *const *const c_double,
     all_samples_expected_outputs: *const *const c_double,
+    all_tests_inputs: *const *const c_double,
+    all_tests_expected_outputs: *const *const c_double,
     samples_count: usize,
     sample_inputs_len: usize,
+    tests_count: usize,
+    test_inputs_len: usize,
     alpha: c_double,
     nb_iter: usize,
     is_classification: bool,
-) {
+) -> TrainResult {
+    // SAMPLE
     let all_samples_inputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_inputs, samples_count)
             .iter()
             .map(|&input_ptr| std::slice::from_raw_parts(input_ptr, sample_inputs_len).to_vec())
             .collect()
     };
-
     let all_samples_expected_outputs_vec: Vec<Vec<f64>> = unsafe {
         std::slice::from_raw_parts(all_samples_expected_outputs, samples_count)
             .iter()
             .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, (*mlp).d[(*mlp).L]).to_vec())
             .collect()
     };
-
+    // TEST
+    let all_tests_inputs_vec: Vec<Vec<f64>> = unsafe {
+        std::slice::from_raw_parts(all_tests_inputs, tests_count)
+            .iter()
+            .map(|&input_ptr| std::slice::from_raw_parts(input_ptr, test_inputs_len).to_vec())
+            .collect()
+    };
+    let all_tests_expected_outputs_vec: Vec<Vec<f64>> = unsafe {
+        std::slice::from_raw_parts(all_tests_expected_outputs, tests_count)
+            .iter()
+            .map(|&output_ptr| std::slice::from_raw_parts(output_ptr, (*mlp).d[(*mlp).L]).to_vec())
+            .collect()
+    };
     let mut mlp_ref = unsafe { &mut *mlp };
-    mlp_ref.train(
+    let loss_values = mlp_ref.train(
         all_samples_inputs_vec,
         all_samples_expected_outputs_vec,
+        all_tests_inputs_vec,
+        all_tests_expected_outputs_vec,
         alpha as f64,
         nb_iter,
         is_classification,
     );
+    // Flatten the loss values
+    let flat_loss_values: Vec<f64> = loss_values.iter().flat_map(|v| v.clone()).collect();
 
-    //save_weights(&mlp_ref, "weights.txt").unwrap();
+    // Allocate memory for the flat_loss_values and copy data
+    let len = flat_loss_values.len();
+    let inner_len = if loss_values.is_empty() { 0 } else { loss_values[0].len() };
+    let loss_values_ptr = flat_loss_values.as_ptr();
+    std::mem::forget(flat_loss_values); // Prevent Rust from freeing the vector
+
+    TrainResult {
+        loss_values_ptr: loss_values_ptr as *mut f64,
+        len,
+        inner_len,
+    }
 }
-
+#[no_mangle]
+pub extern "C" fn free_train_result(result: TrainResult) {
+    unsafe {
+        libc::free(result.loss_values_ptr as *mut libc::c_void);
+    }
+}
 #[no_mangle]
 pub extern "C" fn mlp_free(mlp: *mut MLP) {
     unsafe {
         let _ = Box::from_raw(mlp);
     }
 }
-
-// fn save_weights(model: &MLP, filename: &str) -> std::io::Result<()> {
-//     let mut file = File::create(filename)?;
-
-//     writeln!(file, "{} {}", model.L, model.d[0])?;
-
-//     for l in 1..model.L {
-//         for j in 0..model.d[l] {
-//             for i in 0..model.d[l - 1] {
-//                 writeln!(file, "{}", model.W[l - 1][j][i])?;
-//             }
-//             writeln!(file, "{}", model.W[l][model.d[l - 1]][j])?;
-//         }
-//     }
-
-//     Ok(())
-// }
