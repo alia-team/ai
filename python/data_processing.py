@@ -42,16 +42,3 @@ def get_all_images_in_folder(folder_path):
                     images[label] = []
                 images[label].append(image_vector)
     return images
-
-
-def convert_rgb_vectors_to_palette(image_vectors):
-    ### Converts RGB vectors to palette vectors
-    palette_vectors = []
-    for image_vector in image_vectors:
-        palette_vector = []
-        for i in range(0, len(image_vector), 3):
-            r, g, b = image_vector[i], image_vector[i + 1], image_vector[i + 2]
-            color = int((r * 6 / 256) * 36 + (g * 6 / 256) * 6 + (b * 6 / 256))
-            palette_vector.append(color)
-        palette_vectors.append(palette_vector)
-    return palette_vectors
