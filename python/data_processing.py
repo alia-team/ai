@@ -32,7 +32,7 @@ def get_all_images_in_folder(folder_path):
     images = {}
     for root, dirs, files in os.walk(folder_path):
         for file in files:
-            if file.endswith(".jpg"):
+            if file.endswith(".png"):
                 image_path = os.path.join(root, file)
                 image_vector = image_to_vector(image_path)
                 label = os.path.basename(root)

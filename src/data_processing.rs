@@ -18,7 +18,7 @@ pub extern "C" fn image_to_vector(image_path: *const c_char) -> *mut f64 {
 
     let (width, height) = img.dimensions();
 
-    let mut pixel_values = Vec::with_capacity((width * height * 3) as usize);
+    let mut pixel_values = Vec::with_capacity((width * height * 1) as usize);
 
     for y in 0..height {
         for x in 0..width {
