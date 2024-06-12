@@ -15,23 +15,25 @@ impl Perceptron {
         Perceptron { weights }
     }
 
-    pub fn fit(&mut self, data_points: &[Vec<c_double>], class_labels: &[c_double], iterations: usize) {
+    pub fn fit(&mut self, data_points: &[Vec<c_double>], class_labels: &[c_double], iterations: usize, learning_rate: c_double) {
         let mut rng = rand::thread_rng();
         for _ in 0..iterations {
             let random_index = rng.gen_range(0..data_points.len());
             let target_label = class_labels[random_index];
-            let mut input = vec![1.0]; // Bias term
+            let mut input = vec![1.0];
             input.extend(&data_points[random_index]);
 
-            // Calculate weighted sum
-            let weighted_sum: c_double = self.weights.iter().zip(&input).map(|(w, x)| w * x).sum();
+            let mut weighted_sum: c_double = 0.0;
+            for i in 0..self.weights.len() {
+                weighted_sum += self.weights[i] * input[i];
+            }
 
             // Activation function
             let predicted_label = if weighted_sum >= 0.0 { 1.0 } else { -1.0 };
 
             // Update weights
             (0..self.weights.len()).for_each(|i| {
-                self.weights[i] += 0.001 * (target_label - predicted_label) * input[i];
+                self.weights[i] += learning_rate * (target_label - predicted_label) * input[i];
             });
         }
     }
@@ -39,7 +41,10 @@ impl Perceptron {
     pub fn predict(&self, new_point: &[c_double]) -> c_double {
         let mut input = vec![1.0]; // Bias term
         input.extend(new_point);
-        let weighted_sum: c_double = self.weights.iter().zip(&input).map(|(w, x)| w * x).sum();
+        let mut weighted_sum: c_double = 0.0;
+        for i in 0..self.weights.len() {
+            weighted_sum += self.weights[i] * input[i];
+        }
         if weighted_sum >= 0.0 {
             1.0
         } else {
@@ -54,7 +59,7 @@ pub extern "C" fn create_perceptron(input_size: usize) -> *mut Perceptron {
 }
 
 #[no_mangle]
-pub extern "C" fn fit_perceptron(ptr: *mut Perceptron, data_points: *const *const c_double, class_labels: *const c_double, n_points: usize, n_features: usize, iterations: usize) {
+pub extern "C" fn fit_perceptron(ptr: *mut Perceptron, data_points: *const *const c_double, class_labels: *const c_double, n_points: usize, n_features: usize, iterations: usize, learning_rate: c_double) {
     let perceptron = unsafe { &mut *ptr };
     let data_points: Vec<Vec<c_double>> = unsafe {
         (0..n_points).map(|i| {
@@ -62,7 +67,8 @@ pub extern "C" fn fit_perceptron(ptr: *mut Perceptron, data_points: *const *cons
         }).collect()
     };
     let class_labels = unsafe { std::slice::from_raw_parts(class_labels, n_points) };
-    perceptron.fit(&data_points, class_labels, iterations);
+
+    perceptron.fit(&data_points, class_labels, iterations, learning_rate);
 }
 
 #[no_mangle]
@@ -93,7 +99,7 @@ mod tests {
         }
 
         let mut perceptron = Perceptron::new(2);
-        perceptron.fit(&data_points, &class_labels, 1000);
+        perceptron.fit(&data_points, &class_labels, 1000, 0.1);
 
         let new_point = vec![0.0, 0.0];
         let predicted_class = perceptron.predict(&new_point);

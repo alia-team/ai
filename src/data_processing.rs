@@ -18,13 +18,18 @@ pub extern "C" fn image_to_vector(image_path: *const c_char) -> *mut f64 {
 
     let (width, height) = img.dimensions();
 
-    let mut pixel_values = Vec::with_capacity((width * height * 3) as usize);
+    let mut pixel_values = Vec::with_capacity((width * height) as usize);
 
     for y in 0..height {
         for x in 0..width {
             let pixel = img.get_pixel(x, y);
             let channels = pixel.to_rgb().0;
-            pixel_values.extend(channels.iter().map(|&v| v as f64));
+            let pixel_values_colors = 
+                (channels[0] as f64 * 6.0 / 256.0) * 36.0 +
+                (channels[1] as f64 * 6.0 / 256.0) * 6.0 +
+                (channels[2] as f64 * 6.0 / 256.0)
+            ;
+            pixel_values.push(pixel_values_colors);
         }
     }
 

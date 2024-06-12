@@ -2,33 +2,63 @@ import ctypes
 import numpy as np
 import platform
 from data_processing import get_all_images_in_folder
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
 
 # Determine the correct shared library filename based on the operating system
 system = platform.system()
-if system == 'Linux':
-    lib_filename = 'libai.so'
-elif system == 'Darwin':  # macOS
-    lib_filename = 'libai.dylib'
-elif system == 'Windows':
-    lib_filename = 'ai.dll'
+if system == "Linux":
+    lib_filename = "libai.so"
+elif system == "Darwin":  # macOS
+    lib_filename = "libai.dylib"
+elif system == "Windows":
+    lib_filename = "ai.dll"
 else:
     raise RuntimeError(f"Unsupported operating system: {system}")
 
 # Load the Rust shared library
 lib = ctypes.CDLL(f"./target/release/{lib_filename}")
 
+
+class TrainResult(ctypes.Structure):
+    _fields_ = [
+        ("loss_values_ptr", ctypes.POINTER(ctypes.c_double)),
+        ("len", ctypes.c_size_t),
+        ("inner_len", ctypes.c_size_t),
+    ]
+
+
 # Define the function signatures of the Rust functions
 lib.mlp_new.argtypes = [ctypes.POINTER(ctypes.c_size_t), ctypes.c_size_t]
 lib.mlp_new.restype = ctypes.POINTER(ctypes.c_void_p)
 
-lib.mlp_predict.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_double), ctypes.c_size_t, ctypes.c_bool]
+lib.mlp_predict.argtypes = [
+    ctypes.c_void_p,
+    ctypes.POINTER(ctypes.c_double),
+    ctypes.c_size_t,
+    ctypes.c_bool,
+]
 lib.mlp_predict.restype = ctypes.POINTER(ctypes.c_double)
 
-lib.mlp_train.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.POINTER(ctypes.POINTER(ctypes.c_double)), ctypes.c_size_t, ctypes.c_size_t, ctypes.c_double, ctypes.c_size_t, ctypes.c_bool]
-lib.mlp_train.restype = None
+lib.mlp_train.argtypes = [
+    ctypes.c_void_p,
+    ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
+    ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
+    ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
+    ctypes.POINTER(ctypes.POINTER(ctypes.c_double)),
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_size_t,
+    ctypes.c_double,
+    ctypes.c_size_t,
+    ctypes.c_bool,
+]
+lib.mlp_train.restype = TrainResult
 
 lib.mlp_free.argtypes = [ctypes.c_void_p]
 lib.mlp_free.restype = None
+
 
 class MLP:
     def __init__(self, npl):
@@ -36,26 +66,91 @@ class MLP:
         self.mlp = lib.mlp_new(npl_arr, len(npl))
         self.output_size = npl[-1]
 
-    def train(self, training_dataset, labels, alpha, nb_iter, is_classification):
+    def train(
+        self,
+        training_dataset,
+        training_labels,
+        test_dataset,
+        test_labels,
+        alpha,
+        nb_iter,
+        is_classification,
+    ):
         samples_count = len(training_dataset)
         sample_inputs_len = len(training_dataset[0])
-        
+        tests_count = len(test_dataset)
+        test_inputs_len = len(test_dataset[0])
+
         TrainingDatasetType = ctypes.POINTER(ctypes.c_double) * samples_count
-        training_dataset_ctypes = TrainingDatasetType(*[np.ctypeslib.as_ctypes(np.array(sample, dtype=np.float64)) for sample in training_dataset])
-        
-        LabelsType = ctypes.POINTER(ctypes.c_double) * samples_count
-        labels_ctypes = LabelsType(*[np.ctypeslib.as_ctypes(np.array(label, dtype=np.float64)) for label in labels])
-        
-        lib.mlp_train(self.mlp, training_dataset_ctypes, labels_ctypes, samples_count, sample_inputs_len, alpha, nb_iter, is_classification)
-    
+        training_dataset_ctypes = TrainingDatasetType(
+            *[
+                np.ctypeslib.as_ctypes(np.array(sample, dtype=np.float64))
+                for sample in training_dataset
+            ]
+        )
+
+        trainingLabelsType = ctypes.POINTER(ctypes.c_double) * samples_count
+        training_labels_ctypes = trainingLabelsType(
+            *[
+                np.ctypeslib.as_ctypes(np.array(label, dtype=np.float64))
+                for label in training_labels
+            ]
+        )
+
+        testDatasetType = ctypes.POINTER(ctypes.c_double) * tests_count
+        test_dataset_ctypes = testDatasetType(
+            *[
+                np.ctypeslib.as_ctypes(np.array(sample, dtype=np.float64))
+                for sample in test_dataset
+            ]
+        )
+
+        testLabelsType = ctypes.POINTER(ctypes.c_double) * tests_count
+        test_labels_ctypes = testLabelsType(
+            *[
+                np.ctypeslib.as_ctypes(np.array(label, dtype=np.float64))
+                for label in test_labels
+            ]
+        )
+
+        train_result = lib.mlp_train(
+            self.mlp,
+            training_dataset_ctypes,
+            training_labels_ctypes,
+            test_dataset_ctypes,
+            test_labels_ctypes,
+            samples_count,
+            sample_inputs_len,
+            tests_count,
+            test_inputs_len,
+            alpha,
+            nb_iter,
+            is_classification,
+        )
+        length = train_result.len
+        inner_length = train_result.inner_len
+        loss_values_ptr = train_result.loss_values_ptr
+
+        # Convert the pointer to a numpy array
+        flat_loss_values = np.ctypeslib.as_array(loss_values_ptr, shape=(length,))
+        # Reshape the flat array to the original nested list shape
+        loss_values = flat_loss_values.reshape(-1, inner_length).tolist()
+        lib.free_train_result(train_result)
+        return loss_values
+
     def predict(self, sample_inputs, is_classification):
-        sample_inputs_arr = np.ctypeslib.as_ctypes(np.array(sample_inputs, dtype=np.float64))
-        output_ptr = lib.mlp_predict(self.mlp, sample_inputs_arr, len(sample_inputs), is_classification)
+        sample_inputs_arr = np.ctypeslib.as_ctypes(
+            np.array(sample_inputs, dtype=np.float64)
+        )
+        output_ptr = lib.mlp_predict(
+            self.mlp, sample_inputs_arr, len(sample_inputs), is_classification
+        )
         output = [output_ptr[i] for i in range(self.output_size)]
         return output
-    
+
     def __del__(self):
         lib.mlp_free(self.mlp)
+
 
 # Example usage:
 images = get_all_images_in_folder("datatest")
@@ -65,18 +160,86 @@ for label, image_vector_ptrs in images.items():
     labels += [label] * len(image_vector_ptrs)
     for image_vector_ptr in image_vector_ptrs:
         image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
-        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 3,)))
+        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 1,)))
+
 
 if __name__ == "__main__":
-    npl = (100 * 100 * 3, 2, 3)
+    npl = (100 * 100 * 1, 5, 3)
     mlp = MLP(npl)
 
-    labels = [[1.0, -1.0, -1.0] if label == 'phidippus' else [-1.0, 1.0, -1.0] if label == 'tegenaria' else [-1.0, -1.0, 1.0] for label in labels]
-    
+    labels = [
+        (
+            [1.0, -1.0, -1.0]
+            if label == "phidippus"
+            else [-1.0, 1.0, -1.0] if label == "tegenaria" else [-1.0, -1.0, 1.0]
+        )
+        for label in labels
+    ]
+
+    # Séparer les données en 3 classes
+    class_1_inputs = [
+        inputs[i] for i in range(len(inputs)) if labels[i] == [1.0, -1.0, -1.0]
+    ]
+    class_2_inputs = [
+        inputs[i] for i in range(len(inputs)) if labels[i] == [-1.0, 1.0, -1.0]
+    ]
+    class_3_inputs = [
+        inputs[i] for i in range(len(inputs)) if labels[i] == [-1.0, -1.0, 1.0]
+    ]
+
+    class_1_labels = [
+        labels[i] for i in range(len(labels)) if labels[i] == [1.0, -1.0, -1.0]
+    ]
+    class_2_labels = [
+        labels[i] for i in range(len(labels)) if labels[i] == [-1.0, 1.0, -1.0]
+    ]
+    class_3_labels = [
+        labels[i] for i in range(len(labels)) if labels[i] == [-1.0, -1.0, 1.0]
+    ]
+
+    # Mélanger les données de chaque classe
+    np.random.shuffle(class_1_inputs)
+    np.random.shuffle(class_2_inputs)
+    np.random.shuffle(class_3_inputs)
+
+    # Diviser chaque classe en ensembles d'entraînement et de test
+    train_inputs_1, test_inputs_1, train_labels_1, test_labels_1 = train_test_split(
+        class_1_inputs, class_1_labels, test_size=0.2, random_state=42
+    )
+    train_inputs_2, test_inputs_2, train_labels_2, test_labels_2 = train_test_split(
+        class_2_inputs, class_2_labels, test_size=0.2, random_state=42
+    )
+    train_inputs_3, test_inputs_3, train_labels_3, test_labels_3 = train_test_split(
+        class_3_inputs, class_3_labels, test_size=0.2, random_state=42
+    )
+
+    # Combiner les ensembles d'entraînement et de test
+    training_inputs = train_inputs_1 + train_inputs_2 + train_inputs_3
+    training_labels = train_labels_1 + train_labels_2 + train_labels_3
+    testing_inputs = test_inputs_1 + test_inputs_2 + test_inputs_3
+    testing_labels = test_labels_1 + test_labels_2 + test_labels_3
+
+    # Standardize the dataset
+    x_train_mean = np.mean(training_inputs, axis=0)
+    x_train_std = np.std(training_inputs, axis=0)
+
+    training_inputs = (training_inputs - x_train_mean) / x_train_std
+    testing_inputs = (testing_inputs - x_train_mean) / x_train_std
+
     print("Training...")
-    mlp.train(inputs, labels, 0.1, 10000, True)
-    
-    print("Predicting...")
-    for k in range(len(inputs)):
-        output = mlp.predict(inputs[k], True)
-        print("k:", k, output, labels[k])
+    res = mlp.train(
+        training_inputs,
+        training_labels,
+        testing_inputs,
+        testing_labels,
+        0.01,
+        10000,
+        True,
+    )
+
+    plt.plot([i * 100 for i in range(len(res))], [r[0] for r in res], color="blue")
+    plt.plot([i * 100 for i in range(len(res))], [r[1] for r in res], color="red")
+    plt.legend(["train dataset", "test dataset"])
+    plt.title("MLP Loss")
+    plt.show()
+    plt.clf()
