@@ -160,7 +160,7 @@ for label, image_vector_ptrs in images.items():
     labels += [label] * len(image_vector_ptrs)
     for image_vector_ptr in image_vector_ptrs:
         image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
-        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 1,)))
+        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 3,)))
 
 if __name__ == "__main__":
     npl = (100 * 100 * 1, 5, 3)
