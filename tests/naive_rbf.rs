@@ -35,26 +35,26 @@ fn build_labels(size: usize, classes: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
 }
 
 #[test]
-fn center_new() {
+fn centroid_new() {
     assert_eq!(
-        Center::new(vec![1.0, 2.0]),
-        Center {
+        Centroid::new(vec![1.0, 2.0]),
+        Centroid {
             coordinates: vec![1.0, 2.0]
         }
     )
 }
 
 #[test]
-fn center_forward() {
-    let center: Center = Center::new(vec![1.0, 2.0]);
+fn centroid_forward() {
+    let centroid: Centroid = Centroid::new(vec![1.0, 2.0]);
     let input: Vec<f64> = vec![2.0, 3.0];
     let gamma: f64 = 0.1;
 
-    assert_eq!(center.forward(input, gamma), 0.8187307530779818);
+    assert_eq!(centroid.forward(input, gamma), 0.8187307530779818);
 }
 
 #[test]
-fn naive_rbf_new() {
+fn new() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
@@ -90,12 +90,12 @@ fn naive_rbf_new() {
     }
 
     // Check other parameters
-    assert_eq!(naive_rbf.centers.len(), hidden_layer_neurons_count);
+    assert_eq!(naive_rbf.centroids.len(), hidden_layer_neurons_count);
     assert!(naive_rbf.gamma <= 1.0 && naive_rbf.gamma >= 0.01);
 }
 
 #[test]
-fn naive_rbf_fit() {
+fn fit() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
@@ -122,7 +122,7 @@ fn naive_rbf_fit() {
 }
 
 #[test]
-fn naive_rbf_predict() {
+fn predict() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);

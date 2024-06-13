@@ -54,7 +54,7 @@ fn centroid_forward() {
 }
 
 #[test]
-fn rbf_new() {
+fn new() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
@@ -89,7 +89,7 @@ fn rbf_new() {
 }
 
 #[test]
-fn rbf_fit() {
+fn fit() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
@@ -114,7 +114,7 @@ fn rbf_fit() {
 }
 
 #[test]
-fn rbf_predict() {
+fn predict() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
