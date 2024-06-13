@@ -125,6 +125,9 @@ impl NaiveRBF {
     pub fn predict(&mut self, input: Vec<f64>) -> Vec<f64> {
         self.outputs[0] = input.clone();
 
+        // Reset hidden layer's outputs
+        self.outputs[1] = vec![];
+
         // Forward pass in hidden layer
         for centroid in &self.centroids {
             self.outputs[1].push(centroid.forward(input.clone(), self.gamma))
