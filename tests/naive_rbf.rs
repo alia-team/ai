@@ -58,13 +58,10 @@ fn new() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let output_layer_neurons_count: usize = 3;
-    let naive_rbf: NaiveRBF = NaiveRBF::new(
-        vec![3, hidden_layer_neurons_count, output_layer_neurons_count],
-        true,
-        dataset,
-    );
+    let input_neurons_count: usize = 3;
+    let output_neurons_count: usize = 3;
+    let naive_rbf: NaiveRBF =
+        NaiveRBF::new(input_neurons_count, output_neurons_count, true, dataset);
 
     // Check outputs
     assert_eq!(naive_rbf.outputs.len(), 3);
@@ -81,7 +78,7 @@ fn new() {
 
     // Check weights
     assert_eq!(naive_rbf.weights.len(), 3);
-    assert_eq!(naive_rbf.weights[2].len(), output_layer_neurons_count);
+    assert_eq!(naive_rbf.weights[2].len(), output_neurons_count);
     for neuron in 0..naive_rbf.weights[2].len() {
         assert_eq!(
             naive_rbf.weights[2][neuron].len(),
@@ -90,7 +87,7 @@ fn new() {
     }
 
     // Check other parameters
-    assert_eq!(naive_rbf.centroids.len(), hidden_layer_neurons_count);
+    assert_eq!(naive_rbf.centroids.len(), dataset_size);
     assert!(naive_rbf.gamma <= 1.0 && naive_rbf.gamma >= 0.01);
 }
 
@@ -100,11 +97,13 @@ fn fit() {
     let clusters_count: usize = 2;
     let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
     let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
     let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
     let gamma: f64 = 0.01;
-    let output_layer_neurons_count: usize = 1;
     let mut naive_rbf: NaiveRBF = NaiveRBF::new(
-        vec![2, dataset_size, output_layer_neurons_count],
+        input_neurons_count,
+        output_neurons_count,
         true,
         training_dataset.clone(),
     );
@@ -112,7 +111,7 @@ fn fit() {
     naive_rbf.fit(training_dataset, labels, gamma);
 
     assert_eq!(naive_rbf.weights.len(), 3);
-    assert_eq!(naive_rbf.weights[2].len(), output_layer_neurons_count);
+    assert_eq!(naive_rbf.weights[2].len(), output_neurons_count);
     for neuron in 0..naive_rbf.weights[2].len() {
         assert_eq!(
             naive_rbf.weights[2][neuron].len(),
@@ -126,12 +125,50 @@ fn predict() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let hidden_layer_neurons_count: usize = dataset_size / 10;
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
     let mut naive_rbf: NaiveRBF =
-        NaiveRBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
+        NaiveRBF::new(input_neurons_count, output_neurons_count, true, dataset);
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = naive_rbf.predict(input);
 
     assert_eq!(prediction.len(), 1);
     assert!(prediction[0] == -1.0 || prediction[0] == 1.0)
+}
+
+#[test]
+fn linear_simple() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 3.0], vec![3.0, 3.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
+    let is_classification: bool = true;
+    let mut model: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        is_classification,
+        training_dataset.clone(),
+    );
+
+    println!("Initialization");
+    println!("Centroids: {:?}", model.centroids);
+    println!("Weights: {:?}", model.weights);
+    println!("Outputs: {:?}", model.outputs);
+
+    let gamma: f64 = 0.1;
+    model.fit(training_dataset.clone(), labels.clone(), gamma);
+
+    println!("Fitting");
+    println!("Centroids: {:?}", model.centroids);
+    println!("Weights: {:?}", model.weights);
+    println!("Outputs: {:?}", model.outputs);
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+
+        println!("Outputs {}: {:?}", i, output);
+        println!("Centroids: {:?}", model.centroids);
+        println!("Weights: {:?}", model.weights);
+        println!("Outputs: {:?}", model.outputs);
+    }
 }

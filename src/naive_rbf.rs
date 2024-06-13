@@ -42,22 +42,22 @@ pub struct NaiveRBF {
 
 impl NaiveRBF {
     pub fn new(
-        neurons_per_layer: Vec<usize>,
+        input_neurons_count: usize,
+        outpout_neurons_count: usize,
         is_classification: bool,
         training_dataset: Vec<Vec<f64>>,
     ) -> Self {
-        if neurons_per_layer.len() != 3 {
-            panic!("A RBF neural network must contain only 3 layers.")
-        }
-
         // Initialize centroids
         let mut centroids: Vec<Centroid> = vec![];
-        for _ in 0..neurons_per_layer[1] {
-            centroids.push(Centroid::new(
-                training_dataset[rand::thread_rng().gen_range(0..training_dataset.len())].clone(),
-            ));
+        for sample in training_dataset.clone() {
+            centroids.push(Centroid::new(sample.clone()));
         }
 
+        let neurons_per_layer: Vec<usize> = vec![
+            input_neurons_count,
+            training_dataset.len(),
+            outpout_neurons_count,
+        ];
         let weights = utils::init_weights(neurons_per_layer.clone(), true);
         let outputs = utils::init_outputs(neurons_per_layer.clone(), true);
         let gamma = rand::thread_rng().gen_range(0.01..=1.0);
@@ -160,17 +160,13 @@ impl NaiveRBF {
 /// The caller must ensure that these conditions are met to avoid undefined behavior.
 #[no_mangle]
 pub unsafe extern "C" fn new_naive_rbf(
-    neurons_per_layer: *const usize,
-    layers_count: usize,
+    input_neurons_count: usize,
+    output_neurons_count: usize,
     is_classification: bool,
     training_dataset: *const *const f64,
     rows: usize,
     cols: usize,
 ) -> *mut NaiveRBF {
-    // Convert neurons_per_layer to Vec<usize>
-    let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
-    let npl_vec: Vec<usize> = npl_slice.to_vec();
-
     // Convert training_dataset to Vec<Vec<f64>>
     let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for i in 0..rows {
@@ -178,7 +174,12 @@ pub unsafe extern "C" fn new_naive_rbf(
         training_dataset_vec.push(row_slice.to_vec());
     }
 
-    let naive_rbf: NaiveRBF = NaiveRBF::new(npl_vec, is_classification, training_dataset_vec);
+    let naive_rbf: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        is_classification,
+        training_dataset_vec,
+    );
     let boxed_naive_rbf: Box<NaiveRBF> = Box::new(naive_rbf);
 
     Box::leak(boxed_naive_rbf)

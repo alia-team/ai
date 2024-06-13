@@ -15,7 +15,7 @@ else:
 lib = CDLL(f"../target/release/{lib_filename}")
 
 lib.new_naive_rbf.argtypes = [
-    POINTER(c_size_t),
+    c_size_t,
     c_size_t,
     c_bool,
     POINTER(POINTER(c_double)),
@@ -49,13 +49,13 @@ lib.free_naive_rbf.restype = None
 class NaiveRBF:
     def __init__(
         self,
-        neurons_per_layer: list[int],
+        input_neurons_count: int,
+        output_neurons_count: int,
         is_classification: bool,
         training_dataset: list[list[float]],
         labels: list[list[float]]
     ) -> None:
-        self.neurons_per_layer: list[int] = neurons_per_layer
-        npl = (c_size_t * len(neurons_per_layer))(*neurons_per_layer)
+        self.neurons_per_layer: list[int] = [input_neurons_count, len(training_dataset), output_neurons_count];
 
         self.training_dataset_nrows: int = len(training_dataset)
         self.training_dataset_ncols: int = len(training_dataset[0])
@@ -74,8 +74,8 @@ class NaiveRBF:
         )
 
         self.model = lib.new_naive_rbf(
-            npl,
-            len(neurons_per_layer),
+            input_neurons_count,
+            output_neurons_count,
             is_classification,
             self.training_dataset,
             self.training_dataset_nrows,
@@ -102,15 +102,3 @@ class NaiveRBF:
 
     def __del__(self) -> None:
         lib.free_naive_rbf(self.model)
-
-if __name__ == "__main__":
-    training_dataset = np.array([[1.0, 0.0], [0.0, 1.0], [0.0, 0.0], [1.0, 1.0]])
-    labels = np.array([[1.0], [1.0], [-1.0], [-1.0]])
-    neurons_per_layer = [2, 4, 1]
-    naive_rbf: NaiveRBF = NaiveRBF(neurons_per_layer, True, training_dataset, labels)
-
-    gamma: float = 0.01
-    naive_rbf.fit(gamma)
-
-    input = [1.0, 1.0]
-    print(naive_rbf.predict(input))
