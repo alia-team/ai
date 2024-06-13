@@ -6,13 +6,13 @@ use rand::Rng;
 use std::{ptr, slice};
 
 #[derive(Debug, PartialEq)]
-pub struct Center {
+pub struct Centroid {
     pub coordinates: Vec<f64>,
 }
 
-impl Center {
+impl Centroid {
     pub fn new(coordinates: Vec<f64>) -> Self {
-        Center { coordinates }
+        Centroid { coordinates }
     }
 
     pub fn forward(&self, input: Vec<f64>, gamma: f64) -> f64 {
@@ -33,7 +33,7 @@ impl Center {
 
 pub struct NaiveRBF {
     pub neurons_per_layer: Vec<usize>,
-    pub centers: Vec<Center>,
+    pub centroids: Vec<Centroid>,
     pub weights: Vec<Vec<Vec<f64>>>,
     pub outputs: Vec<Vec<f64>>,
     pub gamma: f64,
@@ -50,10 +50,10 @@ impl NaiveRBF {
             panic!("A RBF neural network must contain only 3 layers.")
         }
 
-        // Initialize centers
-        let mut centers: Vec<Center> = vec![];
+        // Initialize centroids
+        let mut centroids: Vec<Centroid> = vec![];
         for _ in 0..neurons_per_layer[1] {
-            centers.push(Center::new(
+            centroids.push(Centroid::new(
                 training_dataset[rand::thread_rng().gen_range(0..training_dataset.len())].clone(),
             ));
         }
@@ -64,7 +64,7 @@ impl NaiveRBF {
 
         NaiveRBF {
             neurons_per_layer,
-            centers,
+            centroids,
             weights,
             outputs,
             gamma,
@@ -126,8 +126,8 @@ impl NaiveRBF {
         self.outputs[0] = input.clone();
 
         // Forward pass in hidden layer
-        for center in &self.centers {
-            self.outputs[1].push(center.forward(input.clone(), self.gamma))
+        for centroid in &self.centroids {
+            self.outputs[1].push(centroid.forward(input.clone(), self.gamma))
         }
 
         // Forward pass in output layer
