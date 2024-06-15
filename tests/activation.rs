@@ -8,6 +8,13 @@ fn sign() {
 }
 
 #[test]
+fn heaviside() {
+    assert_eq!(activation::heaviside(-1.0), 0.0);
+    assert_eq!(activation::heaviside(0.0), 1.0);
+    assert_eq!(activation::heaviside(1.0), 1.0);
+}
+
+#[test]
 fn logistic() {
     assert_eq!(activation::logistic(-1.0), 0.2689414213699951);
     assert_eq!(activation::logistic(0.0), 0.5);
