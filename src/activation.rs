@@ -6,7 +6,7 @@ pub fn string_to_activation(string: &str) -> Activation {
         "heaviside" => heaviside,
         "identity" => identity,
         "logistic" => logistic,
-        "sigmoid" => sigmoid,
+        "sigmoid" => logistic,
         "tanh" => tanh,
         _ => panic!("Not a supported activation function"),
     }
@@ -33,10 +33,8 @@ pub fn identity(x: f64) -> f64 {
 }
 
 pub fn logistic(x: f64) -> f64 {
-1.0 / (1.0 + (-x).exp())
+    1.0 / (1.0 + (-x).exp())
 }
-
-pub fn sigmoid = logistic;
 
 pub fn tanh(x: f64) -> f64 {
     x.tanh()
