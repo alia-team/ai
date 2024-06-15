@@ -1,5 +1,6 @@
 extern crate rand;
 use rand::Rng;
+use std::ffi::{c_char, CStr};
 
 pub fn init_outputs(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<f64>> {
     let mut outputs: Vec<Vec<f64>> = vec![];
@@ -76,4 +77,24 @@ pub fn compute_centroid(cluster: Vec<Vec<f64>>) -> Vec<f64> {
         *value /= cluster.len() as f64;
     }
     centroid
+}
+
+/// # Safety
+///
+/// This function is `unsafe` because it dereferences a raw pointer and assumes
+/// the following:
+///
+/// 1. **Validity of Pointer**: The `c_str` pointer must be valid and non-null.
+/// Dereferencing a null or invalid pointer results in undefined behavior (UB).
+/// 2. **Null-terminated String**: The C string must be properly
+/// null-terminated.
+/// If not, the function may read out of bounds, leading to UB.
+/// 3. **UTF-8 Encoding**: The C string must contain valid UTF-8 data.
+/// If the string contains invalid UTF-8 sequences, the function will panic.
+pub unsafe fn c_str_to_rust_str(c_str: *const c_char) -> &'static str {
+    let c_str: &CStr = unsafe { CStr::from_ptr(c_str) };
+    match c_str.to_str() {
+        Ok(s) => s,
+        Err(_) => panic!("Invalid UTF-8 sequence"),
+    }
 }
