@@ -1,4 +1,4 @@
-use ai::rbf::*;
+use ai::{activation, rbf::*};
 extern crate rand;
 use rand::Rng;
 
@@ -60,9 +60,10 @@ fn new() {
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
     let output_layer_neurons_count: usize = 3;
+    let activation: &str = "sign";
     let rbf: RBF = RBF::new(
         vec![3, hidden_layer_neurons_count, output_layer_neurons_count],
-        true,
+        activation,
         dataset,
     );
 
@@ -98,9 +99,10 @@ fn fit() {
     let gamma: f64 = 0.01;
     let max_iterations: usize = 10;
     let output_layer_neurons_count: usize = 1;
+    let activation: &str = "sign";
     let mut rbf: RBF = RBF::new(
         vec![2, dataset_size, output_layer_neurons_count],
-        true,
+        activation,
         training_dataset.clone(),
     );
 
@@ -119,7 +121,8 @@ fn predict() {
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
+    let activation: &str = "sign";
+    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], activation, dataset);
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = rbf.predict(input);
 
