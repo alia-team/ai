@@ -13,3 +13,7 @@ pub fn heaviside(x: f64) -> f64 {
         0.0
     }
 }
+
+pub fn identity(x: f64) -> f64 {
+    x
+}
