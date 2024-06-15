@@ -60,8 +60,13 @@ fn new() {
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let input_neurons_count: usize = 3;
     let output_neurons_count: usize = 3;
-    let naive_rbf: NaiveRBF =
-        NaiveRBF::new(input_neurons_count, output_neurons_count, true, dataset);
+    let activation: &str = "sign";
+    let naive_rbf: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        activation,
+        dataset,
+    );
 
     // Check outputs
     assert_eq!(naive_rbf.outputs.len(), 3);
@@ -101,10 +106,11 @@ fn fit() {
     let output_neurons_count: usize = 1;
     let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
     let gamma: f64 = 0.01;
+    let activation: &str = "sign";
     let mut naive_rbf: NaiveRBF = NaiveRBF::new(
         input_neurons_count,
         output_neurons_count,
-        true,
+        activation,
         training_dataset.clone(),
     );
 
@@ -127,8 +133,13 @@ fn predict() {
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let input_neurons_count: usize = 2;
     let output_neurons_count: usize = 1;
-    let mut naive_rbf: NaiveRBF =
-        NaiveRBF::new(input_neurons_count, output_neurons_count, true, dataset);
+    let activation: &str = "sign";
+    let mut naive_rbf: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        activation,
+        dataset,
+    );
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = naive_rbf.predict(input);
 
@@ -142,11 +153,11 @@ fn linear_simple() {
     let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
     let input_neurons_count: usize = 2;
     let output_neurons_count: usize = 1;
-    let is_classification: bool = true;
+    let activation: &str = "sign";
     let mut model: NaiveRBF = NaiveRBF::new(
         input_neurons_count,
         output_neurons_count,
-        is_classification,
+        activation,
         training_dataset.clone(),
     );
 

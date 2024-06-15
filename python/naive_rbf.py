@@ -1,4 +1,4 @@
-from ctypes import c_bool, c_double, c_size_t, c_void_p, CDLL, POINTER
+from ctypes import c_char_p, c_double, c_size_t, c_void_p, CDLL, POINTER
 import numpy as np
 import platform
 
@@ -17,7 +17,7 @@ lib = CDLL(f"../target/release/{lib_filename}")
 lib.new_naive_rbf.argtypes = [
     c_size_t,
     c_size_t,
-    c_bool,
+    c_char_p,
     POINTER(POINTER(c_double)),
     c_size_t,
     c_size_t
@@ -51,7 +51,7 @@ class NaiveRBF:
         self,
         input_neurons_count: int,
         output_neurons_count: int,
-        is_classification: bool,
+        activation: str,
         training_dataset: list[list[float]],
         labels: list[list[float]]
     ) -> None:
@@ -73,10 +73,12 @@ class NaiveRBF:
                 for label in labels]
         )
 
+        activation_c_str = activation.encode("utf-8")
+
         self.model = lib.new_naive_rbf(
             input_neurons_count,
             output_neurons_count,
-            is_classification,
+            activation_c_str,
             self.training_dataset,
             self.training_dataset_nrows,
             self.training_dataset_ncols

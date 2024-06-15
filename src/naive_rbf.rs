@@ -1,8 +1,9 @@
 extern crate rand;
-use crate::activation::sign;
-use crate::utils;
+use crate::activation::{string_to_activation, Activation};
+use crate::utils::{self, c_str_to_rust_str};
 use nalgebra::*;
 use rand::Rng;
+use std::ffi::c_char;
 use std::{ptr, slice};
 
 #[derive(Debug, PartialEq)]
@@ -37,16 +38,18 @@ pub struct NaiveRBF {
     pub weights: Vec<Vec<Vec<f64>>>,
     pub outputs: Vec<Vec<f64>>,
     pub gamma: f64,
-    pub is_classification: bool,
+    pub activation: Activation,
 }
 
 impl NaiveRBF {
     pub fn new(
         input_neurons_count: usize,
         outpout_neurons_count: usize,
-        is_classification: bool,
+        activation: &str,
         training_dataset: Vec<Vec<f64>>,
     ) -> Self {
+        let activation_fn: Activation = string_to_activation(activation);
+
         // Initialize centroids
         let mut centroids: Vec<Centroid> = vec![];
         for sample in training_dataset.clone() {
@@ -68,7 +71,7 @@ impl NaiveRBF {
             weights,
             outputs,
             gamma,
-            is_classification,
+            activation: activation_fn,
         }
     }
 
@@ -142,10 +145,7 @@ impl NaiveRBF {
                 .sum();
 
             // Activation
-            self.outputs[2][i] = match self.is_classification {
-                true => sign(weighted_sum),
-                false => weighted_sum,
-            }
+            self.outputs[2][i] = (self.activation)(weighted_sum)
         }
 
         self.outputs[2].clone()
@@ -162,11 +162,14 @@ impl NaiveRBF {
 pub unsafe extern "C" fn new_naive_rbf(
     input_neurons_count: usize,
     output_neurons_count: usize,
-    is_classification: bool,
+    activation: *const c_char,
     training_dataset: *const *const f64,
     rows: usize,
     cols: usize,
 ) -> *mut NaiveRBF {
+    // Convert activation C string into Rust string
+    let activation_str: &str = c_str_to_rust_str(activation);
+
     // Convert training_dataset to Vec<Vec<f64>>
     let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(rows);
     for i in 0..rows {
@@ -177,7 +180,7 @@ pub unsafe extern "C" fn new_naive_rbf(
     let naive_rbf: NaiveRBF = NaiveRBF::new(
         input_neurons_count,
         output_neurons_count,
-        is_classification,
+        activation_str,
         training_dataset_vec,
     );
     let boxed_naive_rbf: Box<NaiveRBF> = Box::new(naive_rbf);
