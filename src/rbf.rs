@@ -1,5 +1,5 @@
 extern crate rand;
-use crate::activation::{sign, string_to_activation, Activation};
+use crate::activation::{string_to_activation, Activation};
 use crate::utils::{self, c_str_to_rust_str};
 use nalgebra::DMatrix;
 use rand::Rng;

@@ -1,4 +1,4 @@
-use ai::{activation, rbf::*};
+use ai::rbf::*;
 extern crate rand;
 use rand::Rng;
 
