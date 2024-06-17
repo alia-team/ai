@@ -52,8 +52,9 @@ impl RBF {
         }
         if neurons_per_layer[1] > training_dataset.len() {
             panic!(
-                "Not enough samples in training dataset for {} centroids",
-                neurons_per_layer[1]
+                "Cannot have {} centroids for {} samples in dataset.",
+                neurons_per_layer[1],
+                training_dataset.len()
             );
         }
 

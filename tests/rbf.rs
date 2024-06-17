@@ -90,6 +90,28 @@ fn new() {
 }
 
 #[test]
+#[should_panic(expected = "A RBF neural network must contain only 3 layers.")]
+fn new_too_many_layers() {
+    let training_dataset_size: usize = 2;
+    let clusters_count: usize = 2;
+    let training_dataset: Vec<Vec<f64>> = build_dataset(training_dataset_size, clusters_count);
+    let neurons_per_layer: Vec<usize> = vec![2, 2, 2, 1];
+    let activation: &str = "sign";
+    RBF::new(neurons_per_layer, activation, training_dataset);
+}
+
+#[test]
+#[should_panic(expected = "Cannot have 10 centroids for 2 samples in dataset.")]
+fn new_too_many_centroids() {
+    let training_dataset_size: usize = 2;
+    let clusters_count: usize = 2;
+    let training_dataset: Vec<Vec<f64>> = build_dataset(training_dataset_size, clusters_count);
+    let neurons_per_layer: Vec<usize> = vec![2, 10, 1];
+    let activation: &str = "sign";
+    RBF::new(neurons_per_layer, activation, training_dataset);
+}
+
+#[test]
 fn fit() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
