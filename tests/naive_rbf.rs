@@ -148,6 +148,34 @@ fn predict() {
 }
 
 #[test]
+fn linear_simplest() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 2.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![-1.0], vec![1.0]];
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
+    let activation: &str = "sign";
+    let mut model: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        activation,
+        training_dataset.clone(),
+    );
+
+    let gamma: f64 = 0.1;
+    model.fit(training_dataset.clone(), labels.clone(), gamma);
+
+    assert_eq!(model.centroids[0].coordinates, vec![1.0, 1.0]);
+    assert_eq!(model.centroids[1].coordinates, vec![2.0, 2.0]);
+    assert_eq!(model.weights[2][0][0], -5.5166555661269925);
+    assert_eq!(model.weights[2][0][1], 5.5166555661269925);
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i])
+    }
+}
+
+#[test]
 fn linear_simple() {
     let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 3.0], vec![3.0, 3.0]];
     let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
@@ -161,25 +189,11 @@ fn linear_simple() {
         training_dataset.clone(),
     );
 
-    println!("Initialization");
-    println!("Centroids: {:?}", model.centroids);
-    println!("Weights: {:?}", model.weights);
-    println!("Outputs: {:?}", model.outputs);
-
     let gamma: f64 = 0.1;
     model.fit(training_dataset.clone(), labels.clone(), gamma);
 
-    println!("Fitting");
-    println!("Centroids: {:?}", model.centroids);
-    println!("Weights: {:?}", model.weights);
-    println!("Outputs: {:?}", model.outputs);
-
     for (i, input) in training_dataset.iter().enumerate() {
         let output: Vec<f64> = model.predict(input.to_vec());
-
-        println!("Outputs {}: {:?}", i, output);
-        println!("Centroids: {:?}", model.centroids);
-        println!("Weights: {:?}", model.weights);
-        println!("Outputs: {:?}", model.outputs);
+        assert_eq!(output, labels[i]);
     }
 }
