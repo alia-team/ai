@@ -39,6 +39,7 @@ pub struct RBF {
     pub outputs: Vec<Vec<f64>>,
     pub gamma: f64,
     pub activation: Activation,
+    pub labels: Vec<Vec<f64>>,
 }
 
 impl RBF {
@@ -46,6 +47,7 @@ impl RBF {
         neurons_per_layer: Vec<usize>,
         activation: &str,
         training_dataset: Vec<Vec<f64>>,
+        labels: Vec<Vec<f64>>,
     ) -> Self {
         if neurons_per_layer.len() != 3 {
             panic!("A RBF neural network must contain only 3 layers.")
@@ -59,11 +61,22 @@ impl RBF {
         }
 
         let activation_fn: Activation = string_to_activation(activation);
-        let training_dataset_subset = training_dataset.iter().take(neurons_per_layer[1]);
 
+        let mut rng = rand::thread_rng();
         let mut centroids: Vec<Centroid> = vec![];
-        for sample in training_dataset_subset {
-            centroids.push(Centroid::new(sample.clone()));
+        let mut indexes: Vec<usize> = vec![];
+        let mut centroids_count: usize = 0;
+        let mut sorted_labels: Vec<Vec<f64>> = vec![];
+        while centroids_count < neurons_per_layer[1] {
+            let index = rng.gen_range(0..training_dataset.len());
+            if !indexes.contains(&index) {
+                indexes.push(index);
+
+                centroids.push(Centroid::new(training_dataset[index].clone()));
+                sorted_labels.push(labels[index].clone());
+
+                centroids_count += 1;
+            }
         }
 
         let weights = utils::init_weights(neurons_per_layer.clone(), true);
@@ -77,19 +90,14 @@ impl RBF {
             outputs,
             gamma,
             activation: activation_fn,
+            labels: sorted_labels,
         }
     }
 
-    pub fn fit(
-        &mut self,
-        training_dataset: Vec<Vec<f64>>,
-        labels: Vec<Vec<f64>>,
-        gamma: f64,
-        max_iterations: usize,
-    ) {
+    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, gamma: f64, max_iterations: usize) {
         self.gamma = gamma;
         self._lloyds_algorithm(training_dataset.clone(), max_iterations);
-        self._update_weights(training_dataset, labels);
+        self._update_weights(training_dataset, self.labels.clone());
     }
 
     pub fn predict(&mut self, input: Vec<f64>) -> Vec<f64> {
@@ -217,6 +225,9 @@ pub unsafe extern "C" fn new_rbf(
     training_dataset: *const *const f64,
     training_dataset_nrows: usize,
     training_dataset_ncols: usize,
+    labels: *const *const f64,
+    labels_nrows: usize,
+    labels_ncols: usize,
 ) -> *mut RBF {
     // Convert neurons_per_layer to Vec<usize>
     let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
@@ -233,7 +244,14 @@ pub unsafe extern "C" fn new_rbf(
         training_dataset_vec.push(row_slice.to_vec());
     }
 
-    let rbf: RBF = RBF::new(npl_vec, activation_str, training_dataset_vec);
+    // Convert labels to Vec<Vec<f64>>
+    let mut labels_vec: Vec<Vec<f64>> = Vec::with_capacity(labels_nrows);
+    for i in 0..labels_nrows {
+        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
+        labels_vec.push(row_slice.to_vec());
+    }
+
+    let rbf: RBF = RBF::new(npl_vec, activation_str, training_dataset_vec, labels_vec);
     let boxed_rbf: Box<RBF> = Box::new(rbf);
 
     Box::leak(boxed_rbf)
@@ -254,9 +272,6 @@ pub unsafe extern "C" fn fit_rbf(
     training_dataset: *const *const f64,
     training_dataset_nrows: usize,
     training_dataset_ncols: usize,
-    labels: *const *const f64,
-    labels_nrows: usize,
-    labels_ncols: usize,
     gamma: f64,
     max_iterations: usize,
 ) {
@@ -268,15 +283,8 @@ pub unsafe extern "C" fn fit_rbf(
         training_dataset_vec.push(row_slice.to_vec());
     }
 
-    // Convert labels to Vec<Vec<f64>>
-    let mut labels_vec: Vec<Vec<f64>> = Vec::with_capacity(labels_nrows);
-    for i in 0..labels_nrows {
-        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
-        labels_vec.push(row_slice.to_vec());
-    }
-
     if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
-        rbf.fit(training_dataset_vec, labels_vec, gamma, max_iterations);
+        rbf.fit(training_dataset_vec, gamma, max_iterations);
     }
 }
 
