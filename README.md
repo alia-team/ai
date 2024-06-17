@@ -1,6 +1,6 @@
 # AI
 
-Library for building neural networks.
+Our from scratch AI library for building neural networks.
 
 ## Contributing
 
@@ -9,30 +9,79 @@ Before working on this project, you must read and follow the
 
 ## Modules
 
+There are modules for each type of neural network.
+There are also helpers modules for data processing and utilities.
+
 ### Activation
 
 Contains all activation functions.
 
-### Layer
+### Data Processing
 
-Contains layers structures and methods.
+Contains functions for converting images to vectors and for building/process
+datasets.
 
-### Loss
+### Linear Regression
 
-Contains all loss functions.
+Contains a simple linear model for regression tasks.
 
-### Model
+### MLP
 
-Contains the model structure and its methods.
+Contains a Multi-Layer Perceptron structure with all its methods.
 
-### Neuron
+### Naive RBF
 
-Contains the neuron structure and its methods.
+Contains the structure for a RBF neural network, where there are as many
+centroids as the number of samples in the training dataset.
+This method is a simpler way to implement a RBF for tasks where we exactly
+know all the possible inputs, because it's a obvious case of overfitting (on
+purpose).
+The only hyperparameter is the gamma.
 
-### Optimizer
+### Perceptron
 
-Contains all optimizer functions.
+Contains a simple perceptron structure with all its methods.
 
-### Tensor
+### RBF
 
-Contains the tensor structure and its methods.
+Contains the structure for a RBF neural network, where the centroids are picked
+up randomly from the training dataset.
+It uses K-means clustering with the Lloyd algorithm.
+The hyperparameters are the gamma, the number of centroids and the maximum
+number of iterations for the Lloyd algorithm.
+
+### Utils
+
+Contains initialization functions (for weights, layers outputs, ...), some maths
+(euclidian distance), interoperability functions and others.
+
+## Commands
+
+### Building
+
+In order to make the project interoperable, it must be built using the
+`--release` flag:
+
+```console
+cargo build --release
+```
+
+### Testing
+
+- For running all tests:
+
+```console
+cargo test
+```
+
+- For running all tests and show prints (with `println!()` for example):
+
+```console
+cargo test -- --nocapture
+```
+
+- For running a specific test:
+
+```console
+cargo test test_name -- --exact
+```
