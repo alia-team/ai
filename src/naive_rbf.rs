@@ -136,13 +136,13 @@ impl NaiveRBF {
             self.outputs[1].push(centroid.forward(input.clone(), self.gamma))
         }
 
+        let mut weighted_sum: f64 = 0.0;
+
         // Forward pass in output layer
         for i in 0..self.neurons_per_layer[2] {
-            let weighted_sum: f64 = self.weights[2][i]
-                .iter()
-                .zip(input.clone())
-                .map(|(w, x)| w * x)
-                .sum();
+            for j in 0..self.neurons_per_layer[1] {
+                weighted_sum += self.weights[2][i][j] * self.outputs[1][j];
+            }
 
             // Activation
             self.outputs[2][i] = (self.activation)(weighted_sum)
