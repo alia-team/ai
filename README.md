@@ -1,5 +1,21 @@
 # AI
 
+## Table of Contents
+
+- [Contributing](#contributing)
+- [Modules](#modules)
+  - [Activation](#activation)
+  - [Data Processing](#data-processing)
+  - [Linear Regression](#linear-regression)
+  - [MLP](#mlp)
+  - [Naive RBF](#naive-rbf)
+  - [Perceptron](#perceptron)
+  - [RBF](#rbf)
+  - [Utils](#utils)
+- [Commands](#commands)
+  - [Building](#building)
+  - [Testing](#testing)
+
 Our from scratch AI library for building neural networks.
 
 ## Contributing
