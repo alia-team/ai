@@ -18,7 +18,7 @@ Contains all activation functions.
 
 ### Data Processing
 
-Contains functions for converting images to vectors and for building/process
+Contains functions for converting images to vectors and for building/processing
 datasets.
 
 ### Linear Regression
@@ -31,12 +31,12 @@ Contains a Multi-Layer Perceptron structure with all its methods.
 
 ### Naive RBF
 
-Contains the structure for a RBF neural network, where there are as many
-centroids as the number of samples in the training dataset.
-This method is a simpler way to implement a RBF for tasks where we exactly
-know all the possible inputs, because it's a obvious case of overfitting (on
+Contains the structure for an RBF neural network, where there are **as many**
+**centroids as the number of samples**in the training dataset.
+This method is a simpler way to implement an RBF for tasks where we exactly
+know all the possible inputs, because it's an obvious case of overfitting (on
 purpose).
-The only hyperparameter is the gamma.
+The only hyperparameter is the**gamma**.
 
 ### Perceptron
 
@@ -44,22 +44,22 @@ Contains a simple perceptron structure with all its methods.
 
 ### RBF
 
-Contains the structure for a RBF neural network, where the centroids are picked
-up randomly from the training dataset.
-It uses K-means clustering with the Lloyd algorithm.
-The hyperparameters are the gamma, the number of centroids and the maximum
-number of iterations for the Lloyd algorithm.
+Contains the structure for an RBF neural network, where the **centroids are**
+**picked up randomly from the training dataset**.
+It uses **K-means clustering** with the **Lloyd algorithm**.
+The hyperparameters are the **gamma**, the **number of centroids** and the
+**maximum number of iterations** for the Lloyd algorithm.
 
 ### Utils
 
 Contains initialization functions (for weights, layers outputs, ...), some maths
-(euclidian distance), interoperability functions and others.
+(euclidian distance), interoperability functions, and others.
 
 ## Commands
 
 ### Building
 
-In order to make the project interoperable, it must be built using the
+To make the project interoperable, it must be built using the
 `--release` flag:
 
 ```console
