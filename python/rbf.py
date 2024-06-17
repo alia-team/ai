@@ -20,15 +20,15 @@ lib.new_rbf.argtypes = [
     c_char_p,
     POINTER(POINTER(c_double)),
     c_size_t,
+    c_size_t,
+    POINTER(POINTER(c_double)),
+    c_size_t,
     c_size_t
 ]
 lib.new_rbf.restype = c_void_p
 
 lib.fit_rbf.argtypes = [
     c_void_p,
-    POINTER(POINTER(c_double)),
-    c_size_t,
-    c_size_t,
     POINTER(POINTER(c_double)),
     c_size_t,
     c_size_t,
@@ -83,7 +83,10 @@ class RBF:
             activation_c_str,
             self.training_dataset,
             self.training_dataset_nrows,
-            self.training_dataset_ncols
+            self.training_dataset_ncols,
+            self.labels,
+            self.labels_nrows,
+            self.labels_ncols
         )
 
     def fit(self, gamma: float, max_iterations: int) -> None:
@@ -92,9 +95,6 @@ class RBF:
             self.training_dataset,
             self.training_dataset_nrows,
             self.training_dataset_ncols,
-            self.labels,
-            self.labels_nrows,
-            self.labels_ncols,
             gamma,
             max_iterations
         )
@@ -106,28 +106,3 @@ class RBF:
 
     def __del__(self) -> None:
         lib.free_rbf(self.model)
-
-
-if __name__ == "__main__":
-    neurons_per_layer = [2, 4, 1]
-    is_classification: bool = True
-    training_dataset = np.array([
-        [1.0, 0.0],
-        [0.0, 1.0],
-        [0.0, 0.0],
-        [1.0, 1.0]
-    ])
-    labels = np.array([[1.0], [1.0], [-1.0], [-1.0]])
-    rbf: RBF = RBF(
-        neurons_per_layer,
-        is_classification,
-        training_dataset,
-        labels
-    )
-
-    gamma: float = 0.01
-    max_iterations: int = 100
-    rbf.fit(gamma, max_iterations)
-
-    input = [1.0, 1.0]
-    print(rbf.predict(input))

@@ -57,14 +57,17 @@ fn centroid_forward() {
 fn new() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
-    let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let output_layer_neurons_count: usize = 3;
+    let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
+    let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
+    let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
+    let centroids_count: usize = dataset_size / 10;
+    let output_layer_neurons_count: usize = 1;
     let activation: &str = "sign";
     let rbf: RBF = RBF::new(
-        vec![3, hidden_layer_neurons_count, output_layer_neurons_count],
+        vec![2, centroids_count, output_layer_neurons_count],
         activation,
-        dataset,
+        training_dataset.clone(),
+        labels.clone(),
     );
 
     // Check outputs
@@ -85,7 +88,7 @@ fn new() {
     }
 
     // Check other parameters
-    assert_eq!(rbf.centroids.len(), hidden_layer_neurons_count);
+    assert_eq!(rbf.centroids.len(), centroids_count);
     assert!(rbf.gamma <= 1.0 && rbf.gamma >= 0.01);
 }
 
@@ -94,10 +97,12 @@ fn new() {
 fn new_too_many_layers() {
     let training_dataset_size: usize = 2;
     let clusters_count: usize = 2;
+    let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
     let training_dataset: Vec<Vec<f64>> = build_dataset(training_dataset_size, clusters_count);
+    let labels: Vec<Vec<f64>> = build_labels(training_dataset_size, classes);
     let neurons_per_layer: Vec<usize> = vec![2, 2, 2, 1];
     let activation: &str = "sign";
-    RBF::new(neurons_per_layer, activation, training_dataset);
+    RBF::new(neurons_per_layer, activation, training_dataset, labels);
 }
 
 #[test]
@@ -105,10 +110,12 @@ fn new_too_many_layers() {
 fn new_too_many_centroids() {
     let training_dataset_size: usize = 2;
     let clusters_count: usize = 2;
+    let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
     let training_dataset: Vec<Vec<f64>> = build_dataset(training_dataset_size, clusters_count);
+    let labels: Vec<Vec<f64>> = build_labels(training_dataset_size, classes);
     let neurons_per_layer: Vec<usize> = vec![2, 10, 1];
     let activation: &str = "sign";
-    RBF::new(neurons_per_layer, activation, training_dataset);
+    RBF::new(neurons_per_layer, activation, training_dataset, labels);
 }
 
 #[test]
@@ -126,9 +133,10 @@ fn fit() {
         vec![2, dataset_size, output_layer_neurons_count],
         activation,
         training_dataset.clone(),
+        labels.clone(),
     );
 
-    rbf.fit(training_dataset, labels, gamma, max_iterations);
+    rbf.fit(training_dataset, gamma, max_iterations);
 
     assert_eq!(rbf.weights.len(), 3);
     assert_eq!(rbf.weights[2].len(), output_layer_neurons_count);
@@ -141,10 +149,18 @@ fn fit() {
 fn predict() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
-    let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let hidden_layer_neurons_count: usize = dataset_size / 10;
+    let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
+    let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
+    let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
+    let output_layer_neurons_count: usize = 1;
     let activation: &str = "sign";
-    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], activation, dataset);
+    let mut rbf: RBF = RBF::new(
+        vec![2, dataset_size, output_layer_neurons_count],
+        activation,
+        training_dataset.clone(),
+        labels.clone(),
+    );
+
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = rbf.predict(input);
 
@@ -158,16 +174,16 @@ fn linear_simplest() {
     let labels: Vec<Vec<f64>> = vec![vec![-1.0], vec![1.0]];
     let neurons_per_layer: Vec<usize> = vec![2, 2, 1];
     let activation: &str = "sign";
-    let mut model: RBF = RBF::new(neurons_per_layer, activation, training_dataset.clone());
+    let mut model: RBF = RBF::new(
+        neurons_per_layer,
+        activation,
+        training_dataset.clone(),
+        labels.clone(),
+    );
 
     let gamma: f64 = 0.1;
     let max_iterations: usize = 1000;
-    model.fit(
-        training_dataset.clone(),
-        labels.clone(),
-        gamma,
-        max_iterations,
-    );
+    model.fit(training_dataset.clone(), gamma, max_iterations);
 
     for (i, input) in training_dataset.iter().enumerate() {
         let output: Vec<f64> = model.predict(input.to_vec());
@@ -181,16 +197,16 @@ fn linear_simple() {
     let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
     let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
     let activation: &str = "sign";
-    let mut model: RBF = RBF::new(neurons_per_layer, activation, training_dataset.clone());
+    let mut model: RBF = RBF::new(
+        neurons_per_layer,
+        activation,
+        training_dataset.clone(),
+        labels.clone(),
+    );
 
     let gamma: f64 = 0.1;
     let max_iterations: usize = 1000;
-    model.fit(
-        training_dataset.clone(),
-        labels.clone(),
-        gamma,
-        max_iterations,
-    );
+    model.fit(training_dataset.clone(), gamma, max_iterations);
 
     for (i, input) in training_dataset.iter().enumerate() {
         let output: Vec<f64> = model.predict(input.to_vec());
