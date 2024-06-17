@@ -1,4 +1,4 @@
-from ctypes import c_bool, c_double, c_size_t, c_void_p, CDLL, POINTER
+from ctypes import c_char_p, c_double, c_size_t, c_void_p, CDLL, POINTER
 import numpy as np
 import platform
 
@@ -17,7 +17,7 @@ lib = CDLL(f"../target/release/{lib_filename}")
 lib.new_rbf.argtypes = [
     POINTER(c_size_t),
     c_size_t,
-    c_bool,
+    c_char_p,
     POINTER(POINTER(c_double)),
     c_size_t,
     c_size_t
@@ -52,7 +52,7 @@ class RBF:
     def __init__(
         self,
         neurons_per_layer: list[int],
-        is_classification: bool,
+        activation: str,
         training_dataset: list[list[float]],
         labels: list[list[float]]
     ) -> None:
@@ -75,10 +75,12 @@ class RBF:
                 for label in labels]
         )
 
+        activation_c_str = activation.encode("utf-8")
+
         self.model = lib.new_rbf(
             npl,
             len(neurons_per_layer),
-            is_classification,
+            activation_c_str,
             self.training_dataset,
             self.training_dataset_nrows,
             self.training_dataset_ncols

@@ -54,15 +54,16 @@ fn centroid_forward() {
 }
 
 #[test]
-fn rbf_new() {
+fn new() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
     let output_layer_neurons_count: usize = 3;
+    let activation: &str = "sign";
     let rbf: RBF = RBF::new(
         vec![3, hidden_layer_neurons_count, output_layer_neurons_count],
-        true,
+        activation,
         dataset,
     );
 
@@ -89,7 +90,29 @@ fn rbf_new() {
 }
 
 #[test]
-fn rbf_fit() {
+#[should_panic(expected = "A RBF neural network must contain only 3 layers.")]
+fn new_too_many_layers() {
+    let training_dataset_size: usize = 2;
+    let clusters_count: usize = 2;
+    let training_dataset: Vec<Vec<f64>> = build_dataset(training_dataset_size, clusters_count);
+    let neurons_per_layer: Vec<usize> = vec![2, 2, 2, 1];
+    let activation: &str = "sign";
+    RBF::new(neurons_per_layer, activation, training_dataset);
+}
+
+#[test]
+#[should_panic(expected = "Cannot have 10 centroids for 2 samples in dataset.")]
+fn new_too_many_centroids() {
+    let training_dataset_size: usize = 2;
+    let clusters_count: usize = 2;
+    let training_dataset: Vec<Vec<f64>> = build_dataset(training_dataset_size, clusters_count);
+    let neurons_per_layer: Vec<usize> = vec![2, 10, 1];
+    let activation: &str = "sign";
+    RBF::new(neurons_per_layer, activation, training_dataset);
+}
+
+#[test]
+fn fit() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
@@ -98,9 +121,10 @@ fn rbf_fit() {
     let gamma: f64 = 0.01;
     let max_iterations: usize = 10;
     let output_layer_neurons_count: usize = 1;
+    let activation: &str = "sign";
     let mut rbf: RBF = RBF::new(
         vec![2, dataset_size, output_layer_neurons_count],
-        true,
+        activation,
         training_dataset.clone(),
     );
 
@@ -114,15 +138,62 @@ fn rbf_fit() {
 }
 
 #[test]
-fn rbf_predict() {
+fn predict() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
     let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
+    let activation: &str = "sign";
+    let mut rbf: RBF = RBF::new(vec![2, hidden_layer_neurons_count, 1], activation, dataset);
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = rbf.predict(input);
 
     assert_eq!(prediction.len(), 1);
     assert!(prediction[0] == -1.0 || prediction[0] == 1.0)
+}
+
+#[test]
+fn linear_simplest() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 2.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![-1.0], vec![1.0]];
+    let neurons_per_layer: Vec<usize> = vec![2, 2, 1];
+    let activation: &str = "sign";
+    let mut model: RBF = RBF::new(neurons_per_layer, activation, training_dataset.clone());
+
+    let gamma: f64 = 0.1;
+    let max_iterations: usize = 1000;
+    model.fit(
+        training_dataset.clone(),
+        labels.clone(),
+        gamma,
+        max_iterations,
+    );
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i])
+    }
+}
+
+#[test]
+fn linear_simple() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 3.0], vec![3.0, 3.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
+    let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
+    let activation: &str = "sign";
+    let mut model: RBF = RBF::new(neurons_per_layer, activation, training_dataset.clone());
+
+    let gamma: f64 = 0.1;
+    let max_iterations: usize = 1000;
+    model.fit(
+        training_dataset.clone(),
+        labels.clone(),
+        gamma,
+        max_iterations,
+    );
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i]);
+    }
 }

@@ -1,8 +1,9 @@
 extern crate rand;
-use crate::activation::sign;
-use crate::utils;
+use crate::activation::{string_to_activation, Activation};
+use crate::utils::{self, c_str_to_rust_str};
 use nalgebra::DMatrix;
 use rand::Rng;
+use std::ffi::c_char;
 use std::{ptr, slice};
 
 #[derive(Debug, PartialEq)]
@@ -37,24 +38,32 @@ pub struct RBF {
     pub weights: Vec<Vec<Vec<f64>>>,
     pub outputs: Vec<Vec<f64>>,
     pub gamma: f64,
-    pub is_classification: bool,
+    pub activation: Activation,
 }
 
 impl RBF {
     pub fn new(
         neurons_per_layer: Vec<usize>,
-        is_classification: bool,
+        activation: &str,
         training_dataset: Vec<Vec<f64>>,
     ) -> Self {
         if neurons_per_layer.len() != 3 {
             panic!("A RBF neural network must contain only 3 layers.")
         }
+        if neurons_per_layer[1] > training_dataset.len() {
+            panic!(
+                "Cannot have {} centroids for {} samples in dataset.",
+                neurons_per_layer[1],
+                training_dataset.len()
+            );
+        }
 
-        let mut rng = rand::thread_rng();
+        let activation_fn: Activation = string_to_activation(activation);
+        let training_dataset_subset = training_dataset.iter().take(neurons_per_layer[1]);
+
         let mut centroids: Vec<Centroid> = vec![];
-        for _ in 0..neurons_per_layer[1] {
-            let index = rng.gen_range(0..training_dataset.len());
-            centroids.push(Centroid::new(training_dataset[index].clone()));
+        for sample in training_dataset_subset {
+            centroids.push(Centroid::new(sample.clone()));
         }
 
         let weights = utils::init_weights(neurons_per_layer.clone(), true);
@@ -67,7 +76,7 @@ impl RBF {
             weights,
             outputs,
             gamma,
-            is_classification,
+            activation: activation_fn,
         }
     }
 
@@ -86,24 +95,24 @@ impl RBF {
     pub fn predict(&mut self, input: Vec<f64>) -> Vec<f64> {
         self.outputs[0] = input.clone();
 
+        // Reset hidden layer's outputs
+        self.outputs[1] = vec![];
+
         // Forward pass in hidden layer
         for centroid in &self.centroids {
             self.outputs[1].push(centroid.forward(input.clone(), self.gamma))
         }
 
+        let mut weighted_sum: f64 = 0.0;
+
         // Forward pass in output layer
         for i in 0..self.neurons_per_layer[2] {
-            let weighted_sum: f64 = self.weights[2][i]
-                .iter()
-                .zip(input.clone())
-                .map(|(w, x)| w * x)
-                .sum();
+            for j in 0..self.neurons_per_layer[1] {
+                weighted_sum += self.weights[2][i][j] * self.outputs[1][j];
+            }
 
             // Activation
-            self.outputs[2][i] = match self.is_classification {
-                true => sign(weighted_sum),
-                false => weighted_sum,
-            }
+            self.outputs[2][i] = (self.activation)(weighted_sum)
         }
 
         self.outputs[2].clone()
@@ -204,7 +213,7 @@ impl RBF {
 pub unsafe extern "C" fn new_rbf(
     neurons_per_layer: *const usize,
     layers_count: usize,
-    is_classification: bool,
+    activation: *const c_char,
     training_dataset: *const *const f64,
     training_dataset_nrows: usize,
     training_dataset_ncols: usize,
@@ -212,6 +221,9 @@ pub unsafe extern "C" fn new_rbf(
     // Convert neurons_per_layer to Vec<usize>
     let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
     let npl_vec: Vec<usize> = npl_slice.to_vec();
+
+    // Convert activation C string into Rust string
+    let activation_str: &str = c_str_to_rust_str(activation);
 
     // Convert training_dataset to Vec<Vec<f64>>
     let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
@@ -221,7 +233,7 @@ pub unsafe extern "C" fn new_rbf(
         training_dataset_vec.push(row_slice.to_vec());
     }
 
-    let rbf: RBF = RBF::new(npl_vec, is_classification, training_dataset_vec);
+    let rbf: RBF = RBF::new(npl_vec, activation_str, training_dataset_vec);
     let boxed_rbf: Box<RBF> = Box::new(rbf);
 
     Box::leak(boxed_rbf)

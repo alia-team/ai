@@ -35,34 +35,36 @@ fn build_labels(size: usize, classes: Vec<Vec<f64>>) -> Vec<Vec<f64>> {
 }
 
 #[test]
-fn center_new() {
+fn centroid_new() {
     assert_eq!(
-        Center::new(vec![1.0, 2.0]),
-        Center {
+        Centroid::new(vec![1.0, 2.0]),
+        Centroid {
             coordinates: vec![1.0, 2.0]
         }
     )
 }
 
 #[test]
-fn center_forward() {
-    let center: Center = Center::new(vec![1.0, 2.0]);
+fn centroid_forward() {
+    let centroid: Centroid = Centroid::new(vec![1.0, 2.0]);
     let input: Vec<f64> = vec![2.0, 3.0];
     let gamma: f64 = 0.1;
 
-    assert_eq!(center.forward(input, gamma), 0.8187307530779818);
+    assert_eq!(centroid.forward(input, gamma), 0.8187307530779818);
 }
 
 #[test]
-fn naive_rbf_new() {
+fn new() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let output_layer_neurons_count: usize = 3;
+    let input_neurons_count: usize = 3;
+    let output_neurons_count: usize = 3;
+    let activation: &str = "sign";
     let naive_rbf: NaiveRBF = NaiveRBF::new(
-        vec![3, hidden_layer_neurons_count, output_layer_neurons_count],
-        true,
+        input_neurons_count,
+        output_neurons_count,
+        activation,
         dataset,
     );
 
@@ -81,7 +83,7 @@ fn naive_rbf_new() {
 
     // Check weights
     assert_eq!(naive_rbf.weights.len(), 3);
-    assert_eq!(naive_rbf.weights[2].len(), output_layer_neurons_count);
+    assert_eq!(naive_rbf.weights[2].len(), output_neurons_count);
     for neuron in 0..naive_rbf.weights[2].len() {
         assert_eq!(
             naive_rbf.weights[2][neuron].len(),
@@ -90,29 +92,32 @@ fn naive_rbf_new() {
     }
 
     // Check other parameters
-    assert_eq!(naive_rbf.centers.len(), hidden_layer_neurons_count);
+    assert_eq!(naive_rbf.centroids.len(), dataset_size);
     assert!(naive_rbf.gamma <= 1.0 && naive_rbf.gamma >= 0.01);
 }
 
 #[test]
-fn naive_rbf_fit() {
+fn fit() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let classes: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0]];
     let training_dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
     let labels: Vec<Vec<f64>> = build_labels(dataset_size, classes);
     let gamma: f64 = 0.01;
-    let output_layer_neurons_count: usize = 1;
+    let activation: &str = "sign";
     let mut naive_rbf: NaiveRBF = NaiveRBF::new(
-        vec![2, dataset_size, output_layer_neurons_count],
-        true,
+        input_neurons_count,
+        output_neurons_count,
+        activation,
         training_dataset.clone(),
     );
 
     naive_rbf.fit(training_dataset, labels, gamma);
 
     assert_eq!(naive_rbf.weights.len(), 3);
-    assert_eq!(naive_rbf.weights[2].len(), output_layer_neurons_count);
+    assert_eq!(naive_rbf.weights[2].len(), output_neurons_count);
     for neuron in 0..naive_rbf.weights[2].len() {
         assert_eq!(
             naive_rbf.weights[2][neuron].len(),
@@ -122,16 +127,73 @@ fn naive_rbf_fit() {
 }
 
 #[test]
-fn naive_rbf_predict() {
+fn predict() {
     let dataset_size: usize = 100;
     let clusters_count: usize = 2;
     let dataset: Vec<Vec<f64>> = build_dataset(dataset_size, clusters_count);
-    let hidden_layer_neurons_count: usize = dataset_size / 10;
-    let mut naive_rbf: NaiveRBF =
-        NaiveRBF::new(vec![2, hidden_layer_neurons_count, 1], true, dataset);
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
+    let activation: &str = "sign";
+    let mut naive_rbf: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        activation,
+        dataset,
+    );
     let input: Vec<f64> = vec![1.0, 2.0];
     let prediction: Vec<f64> = naive_rbf.predict(input);
 
     assert_eq!(prediction.len(), 1);
     assert!(prediction[0] == -1.0 || prediction[0] == 1.0)
+}
+
+#[test]
+fn linear_simplest() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 2.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![-1.0], vec![1.0]];
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
+    let activation: &str = "sign";
+    let mut model: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        activation,
+        training_dataset.clone(),
+    );
+
+    let gamma: f64 = 0.1;
+    model.fit(training_dataset.clone(), labels.clone(), gamma);
+
+    assert_eq!(model.centroids[0].coordinates, vec![1.0, 1.0]);
+    assert_eq!(model.centroids[1].coordinates, vec![2.0, 2.0]);
+    assert_eq!(model.weights[2][0][0], -5.5166555661269925);
+    assert_eq!(model.weights[2][0][1], 5.5166555661269925);
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i])
+    }
+}
+
+#[test]
+fn linear_simple() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 3.0], vec![3.0, 3.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
+    let input_neurons_count: usize = 2;
+    let output_neurons_count: usize = 1;
+    let activation: &str = "sign";
+    let mut model: NaiveRBF = NaiveRBF::new(
+        input_neurons_count,
+        output_neurons_count,
+        activation,
+        training_dataset.clone(),
+    );
+
+    let gamma: f64 = 0.1;
+    model.fit(training_dataset.clone(), labels.clone(), gamma);
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i]);
+    }
 }
