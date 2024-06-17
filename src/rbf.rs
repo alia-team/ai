@@ -50,14 +50,19 @@ impl RBF {
         if neurons_per_layer.len() != 3 {
             panic!("A RBF neural network must contain only 3 layers.")
         }
+        if neurons_per_layer[1] > training_dataset.len() {
+            panic!(
+                "Not enough samples in training dataset for {} centroids",
+                neurons_per_layer[1]
+            );
+        }
 
         let activation_fn: Activation = string_to_activation(activation);
+        let training_dataset_subset = training_dataset.iter().take(neurons_per_layer[1]);
 
-        let mut rng = rand::thread_rng();
         let mut centroids: Vec<Centroid> = vec![];
-        for _ in 0..neurons_per_layer[1] {
-            let index = rng.gen_range(0..training_dataset.len());
-            centroids.push(Centroid::new(training_dataset[index].clone()));
+        for sample in training_dataset_subset {
+            centroids.push(Centroid::new(sample.clone()));
         }
 
         let weights = utils::init_weights(neurons_per_layer.clone(), true);
@@ -97,13 +102,13 @@ impl RBF {
             self.outputs[1].push(centroid.forward(input.clone(), self.gamma))
         }
 
+        let mut weighted_sum: f64 = 0.0;
+
         // Forward pass in output layer
         for i in 0..self.neurons_per_layer[2] {
-            let weighted_sum: f64 = self.weights[2][i]
-                .iter()
-                .zip(input.clone())
-                .map(|(w, x)| w * x)
-                .sum();
+            for j in 0..self.neurons_per_layer[1] {
+                weighted_sum += self.weights[2][i][j] * self.outputs[1][j];
+            }
 
             // Activation
             self.outputs[2][i] = (self.activation)(weighted_sum)

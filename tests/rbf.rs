@@ -129,3 +129,49 @@ fn predict() {
     assert_eq!(prediction.len(), 1);
     assert!(prediction[0] == -1.0 || prediction[0] == 1.0)
 }
+
+#[test]
+fn linear_simplest() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 2.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![-1.0], vec![1.0]];
+    let neurons_per_layer: Vec<usize> = vec![2, 2, 1];
+    let activation: &str = "sign";
+    let mut model: RBF = RBF::new(neurons_per_layer, activation, training_dataset.clone());
+
+    let gamma: f64 = 0.1;
+    let max_iterations: usize = 1000;
+    model.fit(
+        training_dataset.clone(),
+        labels.clone(),
+        gamma,
+        max_iterations,
+    );
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i])
+    }
+}
+
+#[test]
+fn linear_simple() {
+    let training_dataset: Vec<Vec<f64>> = vec![vec![1.0, 1.0], vec![2.0, 3.0], vec![3.0, 3.0]];
+    let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
+    let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
+    let activation: &str = "sign";
+    let mut model: RBF = RBF::new(neurons_per_layer, activation, training_dataset.clone());
+
+    let gamma: f64 = 0.1;
+    let max_iterations: usize = 1000;
+    model.fit(
+        training_dataset.clone(),
+        labels.clone(),
+        gamma,
+        max_iterations,
+    );
+
+    for (i, input) in training_dataset.iter().enumerate() {
+        let output: Vec<f64> = model.predict(input.to_vec());
+        assert_eq!(output, labels[i]);
+    }
+}
