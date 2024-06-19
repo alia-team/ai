@@ -138,16 +138,16 @@ impl MLP {
                 }
             }
 
-            for l in (1..=self.L).rev() {
+            for l in (1..self.L).rev() {
                 for i in 1..=self.d[l - 1] {
                     let mut total = 0.0;
                     for j in 1..=self.d[l] {
-                        total += self.W[l][i][j] * self.deltas[l - 1][i];
+                        total += self.W[l][i][j] * self.deltas[l][j];
                     }
                     total *= 1.0 - self.X[l - 1][i].powi(2);
                     self.deltas[l - 1][i] = total;
                 }
-            }            
+            }
 
             for l in 1..=self.L {
                 for i in 0..=self.d[l - 1] {
