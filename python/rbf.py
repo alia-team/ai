@@ -90,6 +90,7 @@ class RBF:
         )
 
     def fit(self, gamma: float, max_iterations: int) -> None:
+        print("Starting fitting process from python interface...")
         lib.fit_rbf(
             self.model,
             self.training_dataset,
