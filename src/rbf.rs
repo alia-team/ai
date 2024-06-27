@@ -16,17 +16,14 @@ impl Centroid {
         Centroid { coordinates }
     }
 
-    pub fn forward(&self, input: Vec<f64>, gamma: f64) -> f64 {
-        let mut vec_sub: Vec<f64> = vec![];
-        for (i, value) in input.iter().enumerate() {
-            vec_sub.push(value - self.coordinates[i])
-        }
+    pub fn forward(&self, input: &[f64], gamma: f64) -> f64 {
+        let vec_sub: Vec<f64> = input
+            .iter()
+            .zip(&self.coordinates)
+            .map(|(i, &c)| i - c)
+            .collect();
 
-        let mut norm: f64 = 0.0;
-        for value in vec_sub {
-            norm += value.powi(2)
-        }
-        norm = norm.sqrt();
+        let norm: f64 = vec_sub.iter().map(|&v| v.powi(2)).sum::<f64>().sqrt();
 
         (-gamma * norm.powi(2)).exp()
     }
@@ -44,10 +41,10 @@ pub struct RBF {
 
 impl RBF {
     pub fn new(
-        neurons_per_layer: Vec<usize>,
+        neurons_per_layer: &[usize],
         activation: &str,
-        training_dataset: Vec<Vec<f64>>,
-        labels: Vec<Vec<f64>>,
+        training_dataset: &[Vec<f64>],
+        labels: &[Vec<f64>],
     ) -> Self {
         if neurons_per_layer.len() != 3 {
             panic!("A RBF neural network must contain only 3 layers.")
@@ -63,52 +60,48 @@ impl RBF {
         let activation_fn: Activation = string_to_activation(activation);
 
         let mut rng = rand::thread_rng();
-        let mut centroids: Vec<Centroid> = vec![];
-        let mut indexes: Vec<usize> = vec![];
-        let mut centroids_count: usize = 0;
-        let mut sorted_labels: Vec<Vec<f64>> = vec![];
-        while centroids_count < neurons_per_layer[1] {
+        let mut centroids: Vec<Centroid> = Vec::with_capacity(neurons_per_layer[1]);
+        let mut indexes: Vec<usize> = Vec::with_capacity(neurons_per_layer[1]);
+
+        while centroids.len() < neurons_per_layer[1] {
             let index = rng.gen_range(0..training_dataset.len());
             if !indexes.contains(&index) {
                 indexes.push(index);
-
                 centroids.push(Centroid::new(training_dataset[index].clone()));
-                sorted_labels.push(labels[index].clone());
-
-                centroids_count += 1;
             }
         }
 
-        let weights = utils::init_weights(neurons_per_layer.clone(), true);
-        let outputs = utils::init_outputs(neurons_per_layer.clone(), true);
+        let weights = utils::init_weights(neurons_per_layer.to_vec(), true);
+        let outputs = utils::init_outputs(neurons_per_layer.to_vec(), true);
         let gamma = rand::thread_rng().gen_range(0.01..=1.0);
 
         RBF {
-            neurons_per_layer,
+            neurons_per_layer: neurons_per_layer.to_vec(),
             centroids,
             weights,
             outputs,
             gamma,
             activation: activation_fn,
-            labels: sorted_labels,
+            labels: labels.to_vec(),
         }
     }
 
-    pub fn fit(&mut self, training_dataset: Vec<Vec<f64>>, gamma: f64, max_iterations: usize) {
+    pub fn fit(&mut self, training_dataset: &[Vec<f64>], gamma: f64, max_iterations: usize) {
         self.gamma = gamma;
-        self._lloyds_algorithm(training_dataset.clone(), max_iterations);
-        self._update_weights(training_dataset, self.labels.clone());
+        self._lloyds_algorithm(training_dataset, max_iterations);
+        let labels_clone = self.labels.clone();
+        self._update_weights(training_dataset, &labels_clone);
     }
 
-    pub fn predict(&mut self, input: Vec<f64>) -> Vec<f64> {
-        self.outputs[0] = input.clone();
+    pub fn predict(&mut self, input: &[f64]) -> Vec<f64> {
+        self.outputs[0] = input.to_vec();
 
         // Reset hidden layer's outputs
-        self.outputs[1] = vec![];
+        self.outputs[1].clear();
 
         // Forward pass in hidden layer
         for centroid in &self.centroids {
-            self.outputs[1].push(centroid.forward(input.clone(), self.gamma))
+            self.outputs[1].push(centroid.forward(input, self.gamma))
         }
 
         let mut weighted_sum: f64 = 0.0;
@@ -126,17 +119,17 @@ impl RBF {
         self.outputs[2].clone()
     }
 
-    pub fn _lloyds_algorithm(&mut self, training_dataset: Vec<Vec<f64>>, max_iterations: usize) {
+    pub fn _lloyds_algorithm(&mut self, training_dataset: &[Vec<f64>], max_iterations: usize) {
         let k = self.centroids.len();
-        for _ in 0..max_iterations {
+        for i in 0..max_iterations {
+
             // Assignment step
             let mut clusters: Vec<Vec<Vec<f64>>> = vec![vec![]; k];
-            for point in training_dataset.clone() {
+            for point in training_dataset.iter() {
                 let mut min_dist = f64::MAX;
                 let mut min_index = 0;
                 for (i, centroid) in self.centroids.iter().enumerate() {
-                    let dist =
-                        utils::euclidean_distance(point.clone(), centroid.coordinates.clone());
+                    let dist = utils::euclidean_distance(point, &centroid.coordinates);
                     if dist < min_dist {
                         min_dist = dist;
                         min_index = i;
@@ -146,23 +139,24 @@ impl RBF {
             }
 
             // Update step
-            for (i, cluster) in clusters.iter().enumerate() {
+            for (j, cluster) in clusters.iter().enumerate() {
                 if !cluster.is_empty() {
-                    let new_centroid = utils::compute_centroid(cluster.clone());
-                    self.centroids[i] = Centroid::new(new_centroid);
+                    let new_centroid = utils::compute_centroid(cluster);
+                    self.centroids[j] = Centroid::new(new_centroid);
                 }
             }
         }
     }
 
-    pub fn _update_weights(&mut self, training_dataset: Vec<Vec<f64>>, labels: Vec<Vec<f64>>) {
+    pub fn _update_weights(&mut self, training_dataset: &[Vec<f64>], labels: &[Vec<f64>]) {
         let n_samples = training_dataset.len();
+        let n_centroids: usize = self.centroids.len();
         let feature_len = training_dataset[0].len();
 
         // Construct Phi matrix
-        let mut phi = DMatrix::zeros(n_samples, n_samples);
+        let mut phi = DMatrix::zeros(n_samples, n_centroids);
         for i in 0..n_samples {
-            for j in 0..n_samples {
+            for j in 0..n_centroids {
                 let mut norm: f64 = 0.0;
                 for k in 0..feature_len {
                     let diff = training_dataset[i][k] - training_dataset[j][k];
@@ -175,9 +169,9 @@ impl RBF {
 
         let phi_transpose = phi.clone().transpose();
 
-        // Invert Phi matrixes
-        let mut inv = phi_transpose.clone() * phi;
-        inv = match inv.clone().try_inverse() {
+        // Invert Phi matrix
+        let temp = phi_transpose.clone() * phi;
+        let inv = match temp.clone().try_inverse() {
             Some(inv) => inv,
             None => panic!("Matrix inversion failed."),
         };
@@ -191,9 +185,10 @@ impl RBF {
         }
 
         // Compute weights
-        let weights_matrix = inv * phi_transpose * y;
+        let phis = inv * phi_transpose;
+        let weights_matrix = phis * y;
 
-        // Convert the DMatrix to Vec<Vec<T>>
+        // Convert the DMatrix to Vec<Vec<f64>>
         let mut weights: Vec<Vec<f64>> = Vec::with_capacity(weights_matrix.ncols());
         for i in 0..self.neurons_per_layer[2] {
             let mut row_vec = Vec::with_capacity(weights_matrix.nrows());
@@ -229,30 +224,36 @@ pub unsafe extern "C" fn new_rbf(
     labels_nrows: usize,
     labels_ncols: usize,
 ) -> *mut RBF {
-    // Convert neurons_per_layer to Vec<usize>
+    // Convert neurons_per_layer to &[usize]
     let npl_slice: &[usize] = unsafe { slice::from_raw_parts(neurons_per_layer, layers_count) };
-    let npl_vec: Vec<usize> = npl_slice.to_vec();
 
     // Convert activation C string into Rust string
     let activation_str: &str = c_str_to_rust_str(activation);
 
     // Convert training_dataset to Vec<Vec<f64>>
-    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
-    for i in 0..training_dataset_nrows {
-        let row_slice: &[f64] =
-            unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
-        training_dataset_vec.push(row_slice.to_vec());
-    }
+    let training_dataset_vec: Vec<Vec<f64>> = (0..training_dataset_nrows)
+        .map(|i| {
+            let row_slice: &[f64] =
+                unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
+            row_slice.to_vec()
+        })
+        .collect();
 
     // Convert labels to Vec<Vec<f64>>
-    let mut labels_vec: Vec<Vec<f64>> = Vec::with_capacity(labels_nrows);
-    for i in 0..labels_nrows {
-        let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
-        labels_vec.push(row_slice.to_vec());
-    }
+    let labels_vec: Vec<Vec<f64>> = (0..labels_nrows)
+        .map(|i| {
+            let row_slice: &[f64] = unsafe { slice::from_raw_parts(*labels.add(i), labels_ncols) };
+            row_slice.to_vec()
+        })
+        .collect();
 
-    let rbf: RBF = RBF::new(npl_vec, activation_str, training_dataset_vec, labels_vec);
-    let boxed_rbf: Box<RBF> = Box::new(rbf);
+    let rbf = RBF::new(
+        npl_slice,
+        activation_str,
+        &training_dataset_vec,
+        &labels_vec,
+    );
+    let boxed_rbf = Box::new(rbf);
 
     Box::leak(boxed_rbf)
 }
@@ -276,15 +277,16 @@ pub unsafe extern "C" fn fit_rbf(
     max_iterations: usize,
 ) {
     // Convert training_dataset to Vec<Vec<f64>>
-    let mut training_dataset_vec: Vec<Vec<f64>> = Vec::with_capacity(training_dataset_nrows);
-    for i in 0..training_dataset_nrows {
-        let row_slice: &[f64] =
-            unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
-        training_dataset_vec.push(row_slice.to_vec());
-    }
+    let training_dataset_vec: Vec<Vec<f64>> = (0..training_dataset_nrows)
+        .map(|i| {
+            let row_slice: &[f64] =
+                unsafe { slice::from_raw_parts(*training_dataset.add(i), training_dataset_ncols) };
+            row_slice.to_vec()
+        })
+        .collect();
 
     if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
-        rbf.fit(training_dataset_vec, gamma, max_iterations);
+        rbf.fit(&training_dataset_vec, gamma, max_iterations);
     }
 }
 
@@ -301,12 +303,11 @@ pub unsafe extern "C" fn predict_rbf(
     input: *const f64,
     input_len: usize,
 ) -> *const f64 {
-    // Convert input to Vec<f64>
+    // Convert input to &[f64]
     let input_slice: &[f64] = unsafe { slice::from_raw_parts(input, input_len) };
-    let input_vec: Vec<f64> = input_slice.to_vec();
 
     if let Some(rbf) = unsafe { rbf_ptr.as_mut() } {
-        let output = rbf.predict(input_vec);
+        let output = rbf.predict(input_slice);
         let output_ptr = output.as_ptr();
         std::mem::forget(output);
         output_ptr

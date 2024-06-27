@@ -90,15 +90,15 @@ fn init_weights() {
 fn euclidian_distance() {
     let a = vec![1.0, 0.0];
     let b = vec![0.0, 1.0];
-    assert_eq!(utils::euclidean_distance(a, b), 1.4142135623730951);
+    assert_eq!(utils::euclidean_distance(&a, &b), 1.4142135623730951);
 
     let a = vec![1.0, 1.0];
     let b = vec![1.0, 1.0];
-    assert_eq!(utils::euclidean_distance(a, b), 0.0);
+    assert_eq!(utils::euclidean_distance(&a, &b), 0.0);
 
     let a = vec![1.0, 2.0];
     let b = vec![3.0, 4.0];
-    assert_eq!(utils::euclidean_distance(a, b), 2.8284271247461903);
+    assert_eq!(utils::euclidean_distance(&a, &b), 2.8284271247461903);
 }
 
 #[test]
@@ -108,12 +108,12 @@ fn compute_centroid() {
     let c = vec![1.0, -1.0];
     let d = vec![-1.0, -1.0];
     let cluster = vec![a, b, c, d];
-    assert_eq!(utils::compute_centroid(cluster), vec![0.0, 0.0]);
+    assert_eq!(utils::compute_centroid(&cluster), vec![0.0, 0.0]);
 
     let a = vec![0.0, 0.0];
     let b = vec![0.0, 2.0];
     let c = vec![2.0, 2.0];
     let d = vec![2.0, 0.0];
     let cluster = vec![a, b, c, d];
-    assert_eq!(utils::compute_centroid(cluster), vec![1.0, 1.0]);
+    assert_eq!(utils::compute_centroid(&cluster), vec![1.0, 1.0]);
 }

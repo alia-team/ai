@@ -58,24 +58,28 @@ pub fn init_weights(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<Vec<
     weights
 }
 
-pub fn euclidean_distance(a: Vec<f64>, b: Vec<f64>) -> f64 {
+pub fn euclidean_distance(a: &[f64], b: &[f64]) -> f64 {
     a.iter()
-        .zip(b.iter())
+        .zip(b)
         .map(|(x, y)| (x - y).powi(2))
         .sum::<f64>()
         .sqrt()
 }
 
-pub fn compute_centroid(cluster: Vec<Vec<f64>>) -> Vec<f64> {
+pub fn compute_centroid(cluster: &[Vec<f64>]) -> Vec<f64> {
+    let n = cluster.len();
     let mut centroid = vec![0.0; cluster[0].len()];
-    for point in cluster.clone() {
+
+    for point in cluster {
         for (i, value) in point.iter().enumerate() {
             centroid[i] += value;
         }
     }
-    for value in centroid.iter_mut() {
-        *value /= cluster.len() as f64;
+
+    for value in &mut centroid {
+        *value /= n as f64;
     }
+
     centroid
 }
 
