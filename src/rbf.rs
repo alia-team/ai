@@ -2,9 +2,11 @@ extern crate rand;
 use crate::activation::{string_to_activation, Activation};
 use crate::utils::{self, c_str_to_rust_str};
 use nalgebra::DMatrix;
+use rand::seq::SliceRandom;
 use rand::Rng;
+use std::collections::HashMap;
 use std::ffi::c_char;
-use std::{ptr, slice};
+use std::{ptr, slice}; // Importing IteratorRandom trait
 
 #[derive(Debug, PartialEq)]
 pub struct Centroid {
@@ -47,7 +49,7 @@ impl RBF {
         labels: &[Vec<f64>],
     ) -> Self {
         if neurons_per_layer.len() != 3 {
-            panic!("A RBF neural network must contain only 3 layers.")
+            panic!("A RBF neural network must contain only 3 layers.");
         }
         if neurons_per_layer[1] > training_dataset.len() {
             panic!(
@@ -61,14 +63,43 @@ impl RBF {
 
         let mut rng = rand::thread_rng();
         let mut centroids: Vec<Centroid> = Vec::with_capacity(neurons_per_layer[1]);
-        let mut indexes: Vec<usize> = Vec::with_capacity(neurons_per_layer[1]);
+        let mut class_indices: HashMap<i32, Vec<usize>> = HashMap::new();
 
-        while centroids.len() < neurons_per_layer[1] {
-            let index = rng.gen_range(0..training_dataset.len());
-            if !indexes.contains(&index) {
-                indexes.push(index);
-                centroids.push(Centroid::new(training_dataset[index].clone()));
-            }
+        // Organize indices by class
+        for (index, label) in labels.iter().enumerate() {
+            let class = label[0] as i32; // Assuming labels are one-dimensional and castable to i32
+            class_indices.entry(class).or_default().push(index);
+        }
+
+        // Calculate the number of centroids per class
+        let num_classes = class_indices.len();
+        let centroids_per_class = neurons_per_layer[1] / num_classes;
+
+        // Randomly select centroids from each class and sort them
+        let mut selected_indices: Vec<usize> = Vec::with_capacity(neurons_per_layer[1]);
+        for indices in class_indices.values() {
+            let mut class_selected_indices: Vec<usize> = indices
+                .choose_multiple(&mut rng, centroids_per_class)
+                .cloned()
+                .collect();
+            class_selected_indices.sort_unstable();
+            selected_indices.extend(class_selected_indices);
+        }
+
+        // If there's any remaining centroids to select (due to integer division rounding)
+        if selected_indices.len() < neurons_per_layer[1] {
+            let remaining = neurons_per_layer[1] - selected_indices.len();
+            let mut remaining_indices: Vec<usize> = (0..training_dataset.len())
+                .filter(|index| !selected_indices.contains(index))
+                .collect();
+            remaining_indices.shuffle(&mut rng);
+            selected_indices.extend(remaining_indices.into_iter().take(remaining));
+            selected_indices.sort_unstable();
+        }
+
+        // Create centroids from the selected indices
+        for &index in &selected_indices {
+            centroids.push(Centroid::new(training_dataset[index].clone()));
         }
 
         let weights = utils::init_weights(neurons_per_layer.to_vec(), true);
@@ -121,8 +152,7 @@ impl RBF {
 
     pub fn _lloyds_algorithm(&mut self, training_dataset: &[Vec<f64>], max_iterations: usize) {
         let k = self.centroids.len();
-        for i in 0..max_iterations {
-
+        for _ in 0..max_iterations {
             // Assignment step
             let mut clusters: Vec<Vec<Vec<f64>>> = vec![vec![]; k];
             for point in training_dataset.iter() {
