@@ -174,12 +174,7 @@ fn linear_simplest() {
     let labels: Vec<Vec<f64>> = vec![vec![-1.0], vec![1.0]];
     let neurons_per_layer: Vec<usize> = vec![2, 2, 1];
     let activation: &str = "sign";
-    let mut model: RBF = RBF::new(
-        &neurons_per_layer,
-        activation,
-        &training_dataset,
-        &labels,
-    );
+    let mut model: RBF = RBF::new(&neurons_per_layer, activation, &training_dataset, &labels);
 
     let gamma: f64 = 0.1;
     let max_iterations: usize = 1000;
@@ -197,12 +192,7 @@ fn linear_simple() {
     let labels: Vec<Vec<f64>> = vec![vec![1.0], vec![-1.0], vec![-1.0]];
     let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
     let activation: &str = "sign";
-    let mut model: RBF = RBF::new(
-        &neurons_per_layer,
-        activation,
-        &training_dataset,
-        &labels,
-    );
+    let mut model: RBF = RBF::new(&neurons_per_layer, activation, &training_dataset, &labels);
 
     let gamma: f64 = 0.1;
     let max_iterations: usize = 1000;
