@@ -34,3 +34,10 @@ fn tanh() {
     assert_eq!(activation::tanh(0.0), 0.0);
     assert_eq!(activation::tanh(1.0), 0.7615941559557649);
 }
+
+#[test]
+fn relu() {
+    assert_eq!(activation::relu(-1.0), 0.0);
+    assert_eq!(activation::relu(0.0), 0.0);
+    assert_eq!(activation::relu(1.0), 1.0);
+}
