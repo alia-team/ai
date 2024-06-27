@@ -62,15 +62,12 @@ impl RBF {
         let mut rng = rand::thread_rng();
         let mut centroids: Vec<Centroid> = Vec::with_capacity(neurons_per_layer[1]);
         let mut indexes: Vec<usize> = Vec::with_capacity(neurons_per_layer[1]);
-        let mut sorted_labels: Vec<Vec<f64>> = Vec::with_capacity(neurons_per_layer[1]);
 
         while centroids.len() < neurons_per_layer[1] {
             let index = rng.gen_range(0..training_dataset.len());
             if !indexes.contains(&index) {
                 indexes.push(index);
-
                 centroids.push(Centroid::new(training_dataset[index].clone()));
-                sorted_labels.push(labels[index].clone());
             }
         }
 
@@ -85,12 +82,11 @@ impl RBF {
             outputs,
             gamma,
             activation: activation_fn,
-            labels: sorted_labels,
+            labels: labels.to_vec(),
         }
     }
 
     pub fn fit(&mut self, training_dataset: &[Vec<f64>], gamma: f64, max_iterations: usize) {
-        println!("Fitting...");
         self.gamma = gamma;
         self._lloyds_algorithm(training_dataset, max_iterations);
         let labels_clone = self.labels.clone();
@@ -124,20 +120,15 @@ impl RBF {
     }
 
     pub fn _lloyds_algorithm(&mut self, training_dataset: &[Vec<f64>], max_iterations: usize) {
-        println!("Lloyd's algorithm...");
         let k = self.centroids.len();
         for i in 0..max_iterations {
-            println!("Iteration {}...", i);
 
             // Assignment step
-            println!("Assignment step...");
             let mut clusters: Vec<Vec<Vec<f64>>> = vec![vec![]; k];
             for point in training_dataset.iter() {
-                println!("Sample: {:?}", point);
                 let mut min_dist = f64::MAX;
                 let mut min_index = 0;
                 for (i, centroid) in self.centroids.iter().enumerate() {
-                    println!("{:?}", centroid);
                     let dist = utils::euclidean_distance(point, &centroid.coordinates);
                     if dist < min_dist {
                         min_dist = dist;
@@ -148,29 +139,24 @@ impl RBF {
             }
 
             // Update step
-            println!("Update step...");
             for (j, cluster) in clusters.iter().enumerate() {
-                println!("Cluster: {:?}", cluster);
                 if !cluster.is_empty() {
                     let new_centroid = utils::compute_centroid(cluster);
-                    println!("New centroid {}: {:?}", j, new_centroid);
                     self.centroids[j] = Centroid::new(new_centroid);
                 }
             }
         }
-        println!("Lloyd's algorithm done.");
     }
 
     pub fn _update_weights(&mut self, training_dataset: &[Vec<f64>], labels: &[Vec<f64>]) {
-        println!("Updating weights...");
         let n_samples = training_dataset.len();
+        let n_centroids: usize = self.centroids.len();
         let feature_len = training_dataset[0].len();
 
         // Construct Phi matrix
-        println!("Constructing Phi matrix...");
-        let mut phi = DMatrix::zeros(n_samples, n_samples);
+        let mut phi = DMatrix::zeros(n_samples, n_centroids);
         for i in 0..n_samples {
-            for j in 0..n_samples {
+            for j in 0..n_centroids {
                 let mut norm: f64 = 0.0;
                 for k in 0..feature_len {
                     let diff = training_dataset[i][k] - training_dataset[j][k];
@@ -178,23 +164,19 @@ impl RBF {
                 }
                 norm = norm.sqrt();
                 phi[(i, j)] = (-self.gamma * norm.powi(2)).exp();
-                println!("Phi[{}][{}] = {:?}", i, j, phi[(i, j)]);
             }
         }
 
-        println!("Transposing Phi...");
         let phi_transpose = phi.clone().transpose();
 
         // Invert Phi matrix
-        println!("Inverting Phi...");
-        let mut inv = phi_transpose.clone() * phi;
-        inv = match inv.clone().try_inverse() {
+        let temp = phi_transpose.clone() * phi;
+        let inv = match temp.clone().try_inverse() {
             Some(inv) => inv,
             None => panic!("Matrix inversion failed."),
         };
 
         // Construct Y vector
-        println!("Constructing labels vector...");
         let mut y = DMatrix::zeros(labels.len(), labels[0].len());
         for i in 0..labels.len() {
             for j in 0..labels[0].len() {
@@ -203,11 +185,10 @@ impl RBF {
         }
 
         // Compute weights
-        println!("Computing weights...");
-        let weights_matrix = inv * phi_transpose * y;
+        let phis = inv * phi_transpose;
+        let weights_matrix = phis * y;
 
         // Convert the DMatrix to Vec<Vec<f64>>
-        println!("Converting DMatrix to Vec<Vec<f64>>...");
         let mut weights: Vec<Vec<f64>> = Vec::with_capacity(weights_matrix.ncols());
         for i in 0..self.neurons_per_layer[2] {
             let mut row_vec = Vec::with_capacity(weights_matrix.nrows());
@@ -219,7 +200,6 @@ impl RBF {
 
         // Assign weights to the last layer
         self.weights[2] = weights;
-        println!("Weights update done.");
     }
 }
 
