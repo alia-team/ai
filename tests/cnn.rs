@@ -1,4 +1,4 @@
-use ai::cnn;
+use ai::cnn::{self, Padding};
 
 #[test]
 fn max_pool_2d() {
@@ -10,14 +10,14 @@ fn max_pool_2d() {
     ];
     let pool_size: &[usize; 2] = &[2, 2];
     let stride: usize = 2;
-    let padding: &str = "valid";
+    let padding: Padding = Padding::Valid;
     let expected_output: Vec<Vec<f64>> = vec![vec![20.0, 30.0], vec![112.0, 37.0]];
     assert_eq!(
         cnn::max_pool_2d(&input, pool_size, stride, padding),
         expected_output
     );
 
-    let padding: &str = "same";
+    let padding: Padding = Padding::Same;
     let expected_output: Vec<Vec<f64>> = vec![
         vec![0.0, 0.0, 0.0, 0.0],
         vec![0.0, 20.0, 30.0, 0.0],

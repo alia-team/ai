@@ -1,20 +1,26 @@
+#[derive(Copy, Clone)]
+pub enum Padding {
+    Valid,
+    Same,
+}
+
 pub fn max_pool_2d(
     input: &[Vec<f64>],
     pool_size: &[usize; 2],
     stride: usize,
-    padding: &str,
+    padding: Padding,
 ) -> Vec<Vec<f64>> {
     let (input_height, input_width) = (input.len(), input[0].len());
     let (pool_height, pool_width) = (pool_size[0], pool_size[1]);
 
     // Determine padding
     let (pad_h, pad_w) = match padding {
-        "same" => {
+        Padding::Same => {
             let pad_h = ((input_height - 1) * stride + pool_height - input_height) / 2;
             let pad_w = ((input_width - 1) * stride + pool_width - input_width) / 2;
             (pad_h, pad_w)
         },
-        _ => (0, 0),
+        Padding::Valid => (0, 0),
     };
 
     // Apply padding to input
@@ -22,8 +28,8 @@ pub fn max_pool_2d(
 
     // Output dimensions
     let (out_height, out_width) = match padding {
-        "same" => (input_height, input_width),
-        _ => (
+        Padding::Same => (input_height, input_width),
+        Padding::Valid => (
             (input_height - pool_height + stride) / stride,
             (input_width - pool_width + stride) / stride,
         ),
