@@ -66,3 +66,27 @@ Parameters:
   If `None`, identity activation function is used.
 
 Output: `Vec<f64>`
+
+## Fitting
+
+### History struct
+
+Fields:
+
+- `epochs`: `Vec<usize>`;
+- `train_loss`: `Vec<f64>`;
+- `train_accuracy`: `Vec<f64>`;
+- `val_loss`: `Vec<Option<f64>>`;
+- `val_accuracy`: `Vec<Option<f64>>`;
+
+### Fit function
+
+Parameters:
+
+- `optimizer`: `enum::{Adam, ...}`;
+- `loss`: `enum::{MSE, CategoricalCrossEntropy, ...}`;
+- `training_dataset`: `&[Vec<f64>]`;
+- `validation_dataset`: `Option<&[Vec<f64>]>`;
+- epochs: `usize`
+
+Output: `History`
