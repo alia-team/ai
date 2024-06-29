@@ -8,7 +8,7 @@ fn max_pool_2d() {
         vec![34.0, 70.0, 37.0, 4.0],
         vec![112.0, 100.0, 25.0, 12.0],
     ];
-    let pool_size: &[usize; 2] = &[2, 2];
+    let pool_size: (usize, usize) = (2, 2);
     let stride: usize = 2;
     let padding: Padding = Padding::Valid;
     let expected_output: Vec<Vec<f64>> = vec![vec![20.0, 30.0], vec![112.0, 37.0]];
@@ -29,7 +29,7 @@ fn max_pool_2d() {
         expected_output
     );
 
-    let pool_size: &[usize; 2] = &[3, 2];
+    let pool_size: (usize, usize) = (3, 2);
     let stride: usize = 1;
     let expected_output: Vec<Vec<f64>> = vec![
         vec![20.0, 30.0, 30.0, 0.0],

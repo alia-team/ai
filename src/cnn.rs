@@ -6,12 +6,12 @@ pub enum Padding {
 
 pub fn max_pool_2d(
     input: &[Vec<f64>],
-    pool_size: &[usize; 2],
+    pool_size: (usize, usize),
     stride: usize,
     padding: Padding,
 ) -> Vec<Vec<f64>> {
     let (input_height, input_width) = (input.len(), input[0].len());
-    let (pool_height, pool_width) = (pool_size[0], pool_size[1]);
+    let (pool_height, pool_width) = pool_size;
 
     // Determine padding
     let (pad_h, pad_w) = match padding {
