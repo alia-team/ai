@@ -18,7 +18,7 @@ Parameter:
   weights will not be trainable, and all input channels will have this same
   kernel;
 - `kernel_size`: `Option<(usize, usize)>`: shape of the convolution window.
-  If the `kernel`` parameter is set, this one will be ignored;
+  If the `kernel` parameter is set, this one will be ignored;
 - `strides`: `(usize, usize)`: stride length of the convolution for each dimension;
 - `padding`: `enum::{Same, Valid}`: `Valid` means no padding, and `Same` means
   padding evenly to the left/right or up/down;
