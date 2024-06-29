@@ -1,4 +1,5 @@
 pub mod activation;
+pub mod cnn;
 pub mod data_processing;
 pub mod mlp;
 pub mod naive_rbf;
