@@ -1,9 +1,9 @@
 pub mod activation;
 pub mod cnn;
 pub mod data_processing;
+pub mod loss;
 pub mod mlp;
 pub mod naive_rbf;
 pub mod perceptron;
 pub mod rbf;
 pub mod utils;
-pub mod linear_regression;
