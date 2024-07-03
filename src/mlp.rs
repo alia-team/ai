@@ -72,7 +72,7 @@ impl MLP {
             for j in 1..=self.d[l] {0
                 let mut total = 0.0;
                 for i in 0..=self.d[l - 1] {
-                    total += self.W[l][i][j] * self.deltas[l - 1][i];
+                    total += self.W[l][i][j] * self.X[l - 1][i];
                 }
                 if is_classification || l <= self.L {
                     total = total.tanh();
