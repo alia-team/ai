@@ -1,6 +1,7 @@
 extern crate rand;
 extern crate libc;
-use rand::Rng;
+use rand::{Rng, thread_rng};
+use rand::seq::SliceRandom;
 use std::f64;
 use std::os::raw::c_double;
 use std::fs::File;
@@ -104,7 +105,7 @@ impl MLP {
                 println!("{}%", percent);
                 percent+=1.0;
             }
-            if iter % 100 == 0 {
+            if iter % 10 == 0 {
                 let mut total_squared_error_train = 0.0;
                 let mut total_squared_error_test = 0.0;
                 for iter_test in 0.. all_tests_inputs.len(){
@@ -124,38 +125,47 @@ impl MLP {
 
                 loss_values.push(vec![total_squared_error_train, total_squared_error_test]);
             }
-            let k = rand::thread_rng().gen_range(0..all_samples_inputs.len());
-            let sample_inputs = &all_samples_inputs[k];
-            let sample_expected_outputs = &all_samples_expected_outputs[k];
-
-            self.propagate(sample_inputs.clone(), is_classification);
 
 
-            for j in 1..=self.d[self.L] {
-                self.deltas[self.L][j] = self.X[self.L][j] - sample_expected_outputs[j - 1];
-                if is_classification {
-                    self.deltas[self.L][j] *= 1.0 - self.X[self.L][j].powi(2);
-                }
-            }
+            let mut order = (0..all_samples_inputs.len()).collect::<Vec<usize>>();
+            let mut rng = thread_rng();
+            order.shuffle(&mut rng);
 
-            for l in (1..=self.L).rev() {
-                for i in 1..=self.d[l - 1] {
-                    let mut total = 0.0;
-                    for j in 1..=self.d[l] {
-                        total += self.W[l][i][j] * self.deltas[l][j];
-                    }
-                    total *= 1.0 - self.X[l - 1][i].powi(2);
-                    self.deltas[l - 1][i] = total;
-                }
-            }
+            for order_index in order.iter() {
+                let k = *order_index;
+                let sample_inputs = &all_samples_inputs[k];
+                let sample_expected_outputs = &all_samples_expected_outputs[k];
 
-            for l in 1..=self.L {
-                for i in 0..=self.d[l - 1] {
-                    for j in 1..=self.d[l] {
-                        self.W[l][i][j] -= alpha * self.X[l - 1][i] * self.deltas[l][j];
+                self.propagate(sample_inputs.clone(), is_classification);
+
+
+                for j in 1..=self.d[self.L] {
+                    self.deltas[self.L][j] = self.X[self.L][j] - sample_expected_outputs[j - 1];
+                    if is_classification {
+                        self.deltas[self.L][j] *= 1.0 - self.X[self.L][j].powi(2);
                     }
                 }
+
+                for l in (1..=self.L).rev() {
+                    for i in 1..=self.d[l - 1] {
+                        let mut total = 0.0;
+                        for j in 1..=self.d[l] {
+                            total += self.W[l][i][j] * self.deltas[l][j];
+                        }
+                        total *= 1.0 - self.X[l - 1][i].powi(2);
+                        self.deltas[l - 1][i] = total;
+                    }
+                }
+
+                for l in 1..=self.L {
+                    for i in 0..=self.d[l - 1] {
+                        for j in 1..=self.d[l] {
+                            self.W[l][i][j] -= alpha * self.X[l - 1][i] * self.deltas[l][j];
+                        }
+                    }
+                }
             }
+            
         }
         loss_values
     }
