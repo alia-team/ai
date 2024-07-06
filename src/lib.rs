@@ -5,6 +5,7 @@ pub mod layer;
 pub mod linear_regression;
 pub mod loss;
 pub mod mlp;
+pub mod model;
 pub mod naive_rbf;
 pub mod optimizer;
 pub mod perceptron;
