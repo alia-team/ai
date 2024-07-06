@@ -2,6 +2,7 @@ extern crate rand;
 use crate::activation::{string_to_activation, Activation};
 use crate::utils::{self, c_str_to_rust_str};
 use nalgebra::DMatrix;
+use ndarray::arr1;
 use rand::seq::SliceRandom;
 use rand::Rng;
 use std::collections::HashMap;
@@ -37,7 +38,7 @@ pub struct RBF {
     pub weights: Vec<Vec<Vec<f64>>>,
     pub outputs: Vec<Vec<f64>>,
     pub gamma: f64,
-    pub activation: Activation,
+    pub activation: Box<dyn Activation>,
     pub labels: Vec<Vec<f64>>,
 }
 
@@ -59,7 +60,7 @@ impl RBF {
             );
         }
 
-        let activation_fn: Activation = string_to_activation(activation);
+        let activation_struct: Box<dyn Activation> = string_to_activation(activation);
 
         let mut rng = rand::thread_rng();
         let mut centroids: Vec<Centroid> = Vec::with_capacity(neurons_per_layer[1]);
@@ -112,7 +113,7 @@ impl RBF {
             weights,
             outputs,
             gamma,
-            activation: activation_fn,
+            activation: activation_struct,
             labels: labels.to_vec(),
         }
     }
@@ -144,7 +145,7 @@ impl RBF {
             }
 
             // Activation
-            self.outputs[2][i] = (self.activation)(weighted_sum)
+            self.outputs[2][i] = self.activation.forward(&arr1(&[weighted_sum]))[0];
         }
 
         self.outputs[2].clone()
