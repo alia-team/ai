@@ -1,5 +1,77 @@
 # CNN
 
+## Structure proposal
+
+This is just a proposal.
+Maybe a slightly different structure will work better.
+
+### Traits & Classes
+
+#### Model (class)
+
+Fields:
+
+- `layers`: `Array1<Layer>`
+
+Methods:
+
+- `new(layers)`
+- `fit(training_dataset, valid_dataset, targets, learning_rate, batch_size, epochs, loss, optimizer)`
+- `predict(input)`
+
+#### Layer (trait)
+
+Layer trait will have inheritors classes for each type of layer (Dense,
+convolutional, ...).
+
+During the backward pass, we need to compute the gradients of the layer's
+weights twice: one including the bias in order to update the current layer's
+weights, and one excluding the bias to be propagate back to the previous 
+layer.
+This last step is necessary because in our implementation, we include the bias
+in weights for making the computations & structure simpler.
+With this technique, the inputs passed to each layer doesn't include the bias
+(which is simply an input equal to one with a weight).
+So when we pass gradients to a previous layer, they must match the input
+dimensions (so without bias in our case).
+
+Fields:
+
+- `weights`
+- `output`
+- `gradients`
+- `activation`
+
+Methods:
+
+- `forward(inputs)`
+- `backward(gradients)`
+
+#### Loss (trait)
+
+Find a way to make it generic for ALL losses (MSE, binary cross-entropy,
+categorical cross-entropy, sparse categorical cross-entropy, ...)
+
+Methods:
+
+- `compute_loss(predictions, targets)`
+- `compute_gradients(predictions, targets)`
+
+#### Optimizer (trait)
+
+Find a way to make it generic for ALL optimizers (Adam, SGD, ...).
+
+Methods:
+
+- `update_weights(weights, gradients)`
+
+#### Activation (trait)
+
+Methods:
+
+- `forward(inputs)`
+- `backward(gradients)`: gradient of the activation function for the backprop.
+
 ## Layers
 
 ### 2D convolutional layer
@@ -90,3 +162,14 @@ Parameters:
 - epochs: `usize`
 
 Output: `History`
+
+## Full process
+
+1. Forward propagation: Feed the network with an input and get predictions;
+2. Loss computation: Compare the predictions with the targets using a loss
+   function (MSE, crossentropy, ...);
+3. Backpropagation: Compute the gradients of the loss function for each layer
+   with their weights and outputs;
+4. Update weights: Adjust the weights in the opposite direction of the gradients
+   in order to minimize the loss (gradient descent), using an optimizer (Adam,
+   SGD, ...).
