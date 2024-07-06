@@ -14,7 +14,7 @@ else:
     raise RuntimeError(f"Unsupported operating system: {system}")
 
 # Load the Rust shared library
-lib = ctypes.CDLL(f"./target/release/{lib_filename}")
+lib = ctypes.CDLL(f"../target/release/{lib_filename}")
 
 # Define the function signatures of the Rust functions
 lib.image_to_vector.argtypes = [ctypes.c_char_p]

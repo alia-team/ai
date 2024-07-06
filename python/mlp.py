@@ -1,9 +1,8 @@
 import ctypes
 import numpy as np
 import platform
-from data_processing import get_all_images_in_folder
 import matplotlib.pyplot as plt
-from sklearn.model_selection import train_test_split
+
 
 # Determine the correct shared library filename based on the operating system
 system = platform.system()
@@ -17,7 +16,7 @@ else:
     raise RuntimeError(f"Unsupported operating system: {system}")
 
 # Load the Rust shared library
-lib = ctypes.CDLL(f"./target/release/{lib_filename}")
+lib = ctypes.CDLL(f"../target/release/{lib_filename}")
 
 
 class TrainResult(ctypes.Structure):
@@ -73,7 +72,7 @@ class MLP:
         test_dataset,
         test_labels,
         alpha,
-        nb_iter,
+        epochs,
         is_classification,
     ):
         samples_count = len(training_dataset)
@@ -124,7 +123,7 @@ class MLP:
             tests_count,
             test_inputs_len,
             alpha,
-            nb_iter,
+            epochs,
             is_classification,
         )
         length = train_result.len
@@ -151,95 +150,3 @@ class MLP:
     def __del__(self):
         lib.mlp_free(self.mlp)
 
-
-# Example usage:
-images = get_all_images_in_folder("datatest")
-labels = []
-inputs = []
-for label, image_vector_ptrs in images.items():
-    labels += [label] * len(image_vector_ptrs)
-    for image_vector_ptr in image_vector_ptrs:
-        image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
-        inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 1,)))
-
-
-if __name__ == "__main__":
-    npl = (100 * 100 * 1, 5, 3)
-    mlp = MLP(npl)
-
-    labels = [
-        (
-            [1.0, -1.0, -1.0]
-            if label == "phidippus"
-            else [-1.0, 1.0, -1.0] if label == "tegenaria" else [-1.0, -1.0, 1.0]
-        )
-        for label in labels
-    ]
-
-    # Séparer les données en 3 classes
-    class_1_inputs = [
-        inputs[i] for i in range(len(inputs)) if labels[i] == [1.0, -1.0, -1.0]
-    ]
-    class_2_inputs = [
-        inputs[i] for i in range(len(inputs)) if labels[i] == [-1.0, 1.0, -1.0]
-    ]
-    class_3_inputs = [
-        inputs[i] for i in range(len(inputs)) if labels[i] == [-1.0, -1.0, 1.0]
-    ]
-
-    class_1_labels = [
-        labels[i] for i in range(len(labels)) if labels[i] == [1.0, -1.0, -1.0]
-    ]
-    class_2_labels = [
-        labels[i] for i in range(len(labels)) if labels[i] == [-1.0, 1.0, -1.0]
-    ]
-    class_3_labels = [
-        labels[i] for i in range(len(labels)) if labels[i] == [-1.0, -1.0, 1.0]
-    ]
-
-    # Mélanger les données de chaque classe
-    np.random.shuffle(class_1_inputs)
-    np.random.shuffle(class_2_inputs)
-    np.random.shuffle(class_3_inputs)
-
-    # Diviser chaque classe en ensembles d'entraînement et de test
-    train_inputs_1, test_inputs_1, train_labels_1, test_labels_1 = train_test_split(
-        class_1_inputs, class_1_labels, test_size=0.2, random_state=42
-    )
-    train_inputs_2, test_inputs_2, train_labels_2, test_labels_2 = train_test_split(
-        class_2_inputs, class_2_labels, test_size=0.2, random_state=42
-    )
-    train_inputs_3, test_inputs_3, train_labels_3, test_labels_3 = train_test_split(
-        class_3_inputs, class_3_labels, test_size=0.2, random_state=42
-    )
-
-    # Combiner les ensembles d'entraînement et de test
-    training_inputs = train_inputs_1 + train_inputs_2 + train_inputs_3
-    training_labels = train_labels_1 + train_labels_2 + train_labels_3
-    testing_inputs = test_inputs_1 + test_inputs_2 + test_inputs_3
-    testing_labels = test_labels_1 + test_labels_2 + test_labels_3
-
-    # Standardize the dataset
-    x_train_mean = np.mean(training_inputs, axis=0)
-    x_train_std = np.std(training_inputs, axis=0)
-
-    training_inputs = (training_inputs - x_train_mean) / x_train_std
-    testing_inputs = (testing_inputs - x_train_mean) / x_train_std
-
-    print("Training...")
-    res = mlp.train(
-        training_inputs,
-        training_labels,
-        testing_inputs,
-        testing_labels,
-        0.01,
-        10000,
-        True,
-    )
-
-    plt.plot([i * 100 for i in range(len(res))], [r[0] for r in res], color="blue")
-    plt.plot([i * 100 for i in range(len(res))], [r[1] for r in res], color="red")
-    plt.legend(["train dataset", "test dataset"])
-    plt.title("MLP Loss")
-    plt.show()
-    plt.clf()
