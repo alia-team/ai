@@ -23,7 +23,7 @@ fn dense_forward() {
     let mut layer: Dense = Dense::new(units, activation);
 
     let input: Array1<f64> = arr1(&[0., 0.]);
-    let outputs: Array1<f64> = layer.forward(&input);
+    let outputs: Array1<f64> = *(layer.forward(&input).downcast::<Array1<f64>>().unwrap());
 
     assert_eq!(outputs.len(), units);
     assert!(layer.weights.is_some());
@@ -45,7 +45,10 @@ fn dense_backward() {
 
     // Arbitrary gradients for simplicity
     let gradients: Array1<f64> = arr1(&[0.1, -0.2]);
-    let grad_input: Array1<f64> = layer.backward(&gradients);
+    let grad_input: Array1<f64> = *(layer
+        .backward(&gradients)
+        .downcast::<Array1<f64>>()
+        .unwrap());
 
     assert_eq!(grad_input.len(), input.len());
     assert!(layer.weight_gradients.is_some());

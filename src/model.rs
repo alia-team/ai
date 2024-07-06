@@ -94,10 +94,10 @@ impl Model {
     }
 
     pub fn predict(&mut self, input: &Array1<f64>) -> Array1<f64> {
-        let mut output = input.clone();
-
+        let mut output = input.to_owned();
         for layer in self.layers.iter_mut() {
-            output = layer.forward(&output);
+            let output_box = layer.forward(&output);
+            output = *(output_box.downcast::<Array1<f64>>().unwrap());
         }
 
         output
@@ -110,7 +110,8 @@ impl Model {
         for (i, input) in inputs.outer_iter().enumerate() {
             let mut output = input.to_owned();
             for layer in self.layers.iter_mut() {
-                output = layer.forward(&output);
+                let output_box = layer.forward(&output);
+                output = *(output_box.downcast::<Array1<f64>>().unwrap());
             }
             outputs.row_mut(i).assign(&output);
         }
@@ -126,12 +127,13 @@ impl Model {
                 Array2::<f64>::zeros((current_gradients.nrows(), layer.input_size()));
 
             for (i, gradient) in current_gradients.outer_iter().enumerate() {
-                let new_gradient = layer.backward(&gradient.to_owned());
+                let new_gradient_box = layer.backward(&gradient.to_owned());
+                let new_gradient = *(new_gradient_box.downcast::<Array1<f64>>().unwrap());
 
                 // Ensure the new gradient has the correct shape
                 if new_gradient.len() != layer.input_size() {
                     panic!("Layer backward pass returned incorrect gradient shape. Expected: {}, Got: {}", 
-                       layer.input_size(), new_gradient.len());
+                           layer.input_size(), new_gradient.len());
                 }
 
                 new_gradients.row_mut(i).assign(&new_gradient);
