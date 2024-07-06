@@ -2,6 +2,7 @@ extern crate rand;
 use crate::activation::{string_to_activation, Activation};
 use crate::utils::{self, c_str_to_rust_str};
 use nalgebra::*;
+use ndarray::arr1;
 use rand::Rng;
 use std::ffi::c_char;
 use std::{ptr, slice};
@@ -38,7 +39,7 @@ pub struct NaiveRBF {
     pub weights: Vec<Vec<Vec<f64>>>,
     pub outputs: Vec<Vec<f64>>,
     pub gamma: f64,
-    pub activation: Activation,
+    pub activation: Box<dyn Activation>,
 }
 
 impl NaiveRBF {
@@ -48,7 +49,7 @@ impl NaiveRBF {
         activation: &str,
         training_dataset: Vec<Vec<f64>>,
     ) -> Self {
-        let activation_fn: Activation = string_to_activation(activation);
+        let activation_fn: Box<dyn Activation> = string_to_activation(activation);
 
         // Initialize centroids
         let mut centroids: Vec<Centroid> = vec![];
@@ -145,7 +146,7 @@ impl NaiveRBF {
             }
 
             // Activation
-            self.outputs[2][i] = (self.activation)(weighted_sum)
+            self.outputs[2][i] = self.activation.forward(&arr1(&[weighted_sum]))[0];
         }
 
         self.outputs[2].clone()
