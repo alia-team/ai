@@ -72,7 +72,7 @@ class MLP:
         test_dataset,
         test_labels,
         alpha,
-        nb_iter,
+        epochs,
         is_classification,
     ):
         samples_count = len(training_dataset)
@@ -123,7 +123,7 @@ class MLP:
             tests_count,
             test_inputs_len,
             alpha,
-            nb_iter,
+            epochs,
             is_classification,
         )
         length = train_result.len

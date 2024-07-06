@@ -100,17 +100,17 @@ impl MLP {
         all_tests_inputs: Vec<Vec<f64>>,
         all_tests_expected_outputs: Vec<Vec<f64>>,
         alpha: f64,
-        nb_iter: usize,
+        epochs: usize,
         is_classification: bool,
     ) -> Vec<Vec<f64>> {
         let mut loss_values: Vec<Vec<f64>> = vec![];
         let mut percent = 0.0;
-        for iter in 0..nb_iter {
-            if (iter as f64 / nb_iter as f64) * 100.0 > percent {
+        for epoch in 0..epochs {
+            if (epoch as f64 / epochs as f64) * 100.0 > percent {
                 println!("{}%", percent);
                 percent += 1.0;
             }
-            if iter % 10 == 0 {
+            if epoch % 10 == 0 {
                 let mut total_squared_error_train = 0.0;
                 let mut total_squared_error_test = 0.0;
                 for iter_test in 0..all_tests_inputs.len() {
