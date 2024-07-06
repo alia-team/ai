@@ -1,4 +1,5 @@
 use ai::utils;
+use approx::assert_relative_eq;
 
 #[test]
 fn init_outputs() {
@@ -77,9 +78,9 @@ fn init_weights() {
     assert_eq!(weights.len(), 3);
 
     // The two first layers in a RBF shouldn't have any weights
-    for i in 0..2 {
-        assert_eq!(weights[i].len(), 0);
-    }
+    weights.iter().take(2).for_each(|weight| {
+        assert_eq!(weight.len(), 0);
+    });
 
     for neuron in 0..weights[2].len() {
         assert_eq!(weights[2][neuron].len(), neurons_per_layer[1])
@@ -90,7 +91,11 @@ fn init_weights() {
 fn euclidian_distance() {
     let a = vec![1.0, 0.0];
     let b = vec![0.0, 1.0];
-    assert_eq!(utils::euclidean_distance(&a, &b), 1.4142135623730951);
+    assert_relative_eq!(
+        utils::euclidean_distance(&a, &b),
+        std::f64::consts::SQRT_2,
+        epsilon = 1e-10
+    );
 
     let a = vec![1.0, 1.0];
     let b = vec![1.0, 1.0];

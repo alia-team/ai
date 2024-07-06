@@ -1,4 +1,3 @@
-use rand::Rng;
 use rand_distr::{Distribution, Uniform};
 
 pub enum Activation {
