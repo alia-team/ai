@@ -102,12 +102,12 @@ impl Layer for Dense {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct Flatten {
-    input_shape: Option<(usize, usize, usize)>, // (height, width, channels)
-    output_size: usize,
-    input: Option<Array3<f64>>,
-    output: Option<Array1<f64>>,
+    pub input_shape: Option<(usize, usize, usize)>, // (height, width, channels)
+    pub output_size: usize,
+    pub input: Option<Array3<f64>>,
+    pub output: Option<Array1<f64>>,
 }
 
 impl Flatten {
