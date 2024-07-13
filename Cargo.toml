@@ -12,6 +12,11 @@ image = "0.25.1"
 nalgebra = "0.33.0"
 libc = "0.2.155"
 rand_distr = "0.4.3"
-ndarray = "0.15.6"
+ndarray = { version = "0.15", features = ["blas", "rayon"] }
+blas-src = { version = "0.10", features = ["openblas"] }
+openblas-src = { version = "0.10", features = ["cblas", "system"] }
 approx = "0.5.1"
 ndarray-rand = "0.14.0"
+rayon = "1.10.0"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
