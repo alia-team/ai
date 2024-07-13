@@ -1,196 +1,276 @@
-use rand_distr::{Distribution, Uniform};
+use crate::conv2d::Conv2D;
+use crate::dense::Dense;
+use crate::fit::sparse_categorical_crossentropy;
+use crate::maxpool2d::MaxPool2D;
+use ndarray::{Array1, Array3};
+use serde::{Deserialize, Serialize};
+use std::fs::File;
+use std::io::{Read, Write};
 
-pub enum Activation {
-    Identity,
-    ReLU,
-    Sigmoid,
-    Sign,
+#[derive(Serialize, Deserialize)]
+pub struct CNNWeights {
+    conv1: Conv2DWeights,
+    conv2: Conv2DWeights,
+    conv3: Conv2DWeights,
+    dense1: DenseWeights,
+    dense2: DenseWeights,
 }
 
-#[derive(Copy, Clone)]
-pub enum Padding {
-    Same,
-    Valid,
+#[derive(Serialize, Deserialize)]
+struct Conv2DWeights {
+    kernel: Vec<f32>,
+    kernel_shape: Vec<usize>,
+    bias: Vec<f32>,
 }
 
-pub fn max_pool_2d(
-    input: &[Vec<f64>],
-    pool_size: (usize, usize),
-    stride: usize,
-    padding: Padding,
-) -> Vec<Vec<f64>> {
-    let (input_height, input_width) = (input.len(), input[0].len());
-    let (pool_height, pool_width) = pool_size;
+#[derive(Serialize, Deserialize)]
+struct DenseWeights {
+    weights: Vec<f32>,
+    weights_shape: Vec<usize>,
+    bias: Vec<f32>,
+}
 
-    // Determine padding
-    let (pad_h, pad_w) = match padding {
-        Padding::Same => {
-            let pad_h = ((input_height - 1) * stride + pool_height - input_height) / 2;
-            let pad_w = ((input_width - 1) * stride + pool_width - input_width) / 2;
-            (pad_h, pad_w)
-        }
-        Padding::Valid => (0, 0),
-    };
+pub struct CNN {
+    pub conv1: Conv2D,
+    pub conv2: Conv2D,
+    pub conv3: Conv2D,
+    pub dense1: Dense,
+    pub dense2: Dense,
+}
 
-    // Apply padding to input
-    let padded_input = pad_input(input, pad_h, pad_w);
+impl CNN {
+    pub fn new(input_shape: (usize, usize, usize)) -> Self {
+        let (height, width, channels) = input_shape;
 
-    // Output dimensions
-    let (out_height, out_width) = match padding {
-        Padding::Same => (input_height, input_width),
-        Padding::Valid => (
-            (input_height - pool_height + stride) / stride,
-            (input_width - pool_width + stride) / stride,
-        ),
-    };
-
-    // Initialize the output matrix
-    let mut output = vec![vec![f64::MIN; out_width]; out_height];
-
-    // Max pooling
-    for (i, output_row) in output.iter_mut().enumerate().take(out_height) {
-        for (j, output_val) in output_row.iter_mut().enumerate().take(out_width) {
-            for k in 0..pool_height {
-                for l in 0..pool_width {
-                    let x = i * stride + k;
-                    let y = j * stride + l;
-                    if x < padded_input.len() && y < padded_input[0].len() {
-                        *output_val = output_val.max(padded_input[x][y]);
-                    }
-                }
-            }
+        CNN {
+            conv1: Conv2D::new(channels, 64, 3),
+            conv2: Conv2D::new(64, 128, 3),
+            conv3: Conv2D::new(128, 256, 3),
+            dense1: Dense::new(256 * (height / 8) * (width / 8), 8, |x| x.max(0.0)), // ReLU
+            dense2: Dense::new(8, 4, |x| x), // Linear activation, we'll apply softmax later
         }
     }
 
-    output
-}
+    pub fn forward(&self, input: &Array3<f32>) -> Array1<f32> {
+        let mut x = self.conv1.forward(input);
+        let pool = MaxPool2D::new(2);
+        x = pool.forward(&x);
+        x = self.conv2.forward(&x);
+        x = pool.forward(&x);
+        x = self.conv3.forward(&x);
+        x = pool.forward(&x);
 
-fn pad_input(input: &[Vec<f64>], pad_h: usize, pad_w: usize) -> Vec<Vec<f64>> {
-    let (input_height, input_width) = (input.len(), input[0].len());
-    let mut padded_input = vec![vec![0.0; input_width + 2 * pad_w]; input_height + 2 * pad_h];
+        let flat = x.clone().into_shape(x.len()).unwrap();
+        let x = self.dense1.forward(&flat);
+        let x = self.dense2.forward(&x);
 
-    for i in 0..input_height {
-        for j in 0..input_width {
-            padded_input[i + pad_h][j + pad_w] = input[i][j];
-        }
+        // Apply softmax
+        let exp = x.mapv(|a| a.exp());
+        let sum = exp.sum() + 1e-10;
+        exp / sum
     }
 
-    padded_input
-}
+    pub fn backward(&mut self, input: &Array3<f32>, target: usize) -> (f32, Vec<Array1<f32>>) {
+        // Forward pass
+        let mut x = self.conv1.forward(input);
+        let x_conv1 = x.clone();
+        x = MaxPool2D::new(2).forward(&x);
+        let x_pool1 = x.clone();
 
-fn initialize_kernels(
-    filters: usize,
-    kernel_size: (usize, usize),
-    channels: usize,
-) -> Vec<Vec<Vec<Vec<f64>>>> {
-    let mut rng = rand::thread_rng();
-    let dist = Uniform::new(-0.05, 0.05); // Example range for random initialization
-    let mut kernels = vec![vec![vec![vec![0.0; channels]; kernel_size.1]; kernel_size.0]; filters];
+        x = self.conv2.forward(&x);
+        let x_conv2 = x.clone();
+        x = MaxPool2D::new(2).forward(&x);
+        let x_pool2 = x.clone();
 
-    for f in 0..filters {
-        for i in 0..kernel_size.0 {
-            for j in 0..kernel_size.1 {
-                for c in 0..channels {
-                    kernels[f][i][j][c] = dist.sample(&mut rng);
-                }
-            }
+        x = self.conv3.forward(&x);
+        let x_conv3 = x.clone();
+        x = MaxPool2D::new(2).forward(&x);
+        let x_pool3 = x.clone();
+
+        let flat = x.clone().into_shape(x.len()).unwrap();
+        let x_dense1 = self.dense1.forward(&flat);
+        let output = self.dense2.forward(&x_dense1);
+
+        // Calculate loss
+        let mut y_true = Array1::<f32>::zeros(4);
+        if target < 4 {
+            y_true[target] = 1.0;
+        } else {
+            y_true[0] = 1.0; // Set a default target
         }
-    }
-    kernels
-}
+        let loss = sparse_categorical_crossentropy(target.min(3), &output);
 
-pub fn conv_2d(
-    input: &Vec<Vec<f64>>,
-    strides: (usize, usize),
-    kernel: Option<Vec<Vec<f64>>>,
-    kernel_size: Option<(usize, usize)>,
-    filters: usize,
-    padding: Padding,
-    activation: Activation,
-) -> Vec<Vec<f64>> {
-    // Determine kernel size and initialize if not provided
-    let (kernel, kernel_size) = match kernel {
-        Some(k) => (k.clone(), (k.len(), k[0].len())),
-        None => {
-            let size = kernel_size.expect("Kernel size must be provided if kernel is not given");
-            let initialized_kernels = initialize_kernels(filters, size, 1); // Assuming single channel input for simplicity
-            let kernel = initialized_kernels
-                .into_iter()
-                .map(|f| {
-                    f.into_iter()
-                        .map(|v| v.into_iter().map(|c| c[0]).collect())
-                        .collect()
-                })
-                .next()
-                .unwrap();
-            (kernel, size)
-        }
-    };
+        // Backward pass
+        let mut grad = output - y_true;
+        grad = self.dense2.backward(&x_dense1, &grad);
+        grad = self.dense1.backward(&flat, &grad);
 
-    // Function to apply the specified activation
-    fn apply_activation(value: f64, activation: &Activation) -> f64 {
-        match activation {
-            Activation::ReLU => value.max(0.0),
-            Activation::Sigmoid => 1.0 / (1.0 + (-value).exp()),
-            Activation::Identity => value,
-            Activation::Sign => {
-                if value >= 0.0 {
-                    1.0
-                } else {
-                    -1.0
-                }
-            }
-        }
-    }
+        let mut grad = grad.into_shape(x_pool3.dim()).unwrap();
+        grad = MaxPool2D::new(2).backward(&x_conv3, &grad);
+        grad = self.conv3.backward(&x_pool2, &grad);
 
-    // Pad input based on the padding type
-    let pad_input = |input: &Vec<Vec<f64>>, kernel_size: (usize, usize), padding: &Padding| -> Vec<Vec<f64>> {
-        match padding {
-            Padding::Valid => input.clone(),
-            Padding::Same => {
-                let pad_height = kernel_size.0 / 2;
-                let pad_width = kernel_size.1 / 2;
-                let mut padded = vec![vec![0.0; input[0].len() + 2 * pad_width]; input.len() + 2 * pad_height];
-                for i in 0..input.len() {
-                    for j in 0..input[0].len() {
-                        padded[i + pad_height][j + pad_width] = input[i][j];
-                    }
-                }
-                padded
-            }
-        }
-    };
+        grad = MaxPool2D::new(2).backward(&x_conv2, &grad);
+        grad = self.conv2.backward(&x_pool1, &grad);
 
-    // Pad the input if needed
-    let padded_input = pad_input(input, kernel_size, &padding);
+        grad = MaxPool2D::new(2).backward(&x_conv1, &grad);
+        self.conv1.backward(input, &grad);
 
-    // Calculate output dimensions
-    let (output_height, output_width) = match padding {
-        Padding::Valid => (
-            (input.len() - kernel_size.0 + strides.0) / strides.0,
-            (input[0].len() - kernel_size.1 + strides.1) / strides.1,
-        ),
-        Padding::Same => (
-            (input.len() + strides.0 - 1) / strides.0,
-            (input[0].len() + strides.1 - 1) / strides.1,
-        ),
-    };
-    let mut output = vec![vec![0.0; output_width]; output_height];
+        let grads = vec![
+            self.conv1
+                .kernel
+                .clone()
+                .into_shape(self.conv1.kernel.len())
+                .unwrap(),
+            self.conv1.bias.clone(),
+            self.conv2
+                .kernel
+                .clone()
+                .into_shape(self.conv2.kernel.len())
+                .unwrap(),
+            self.conv2.bias.clone(),
+            self.conv3
+                .kernel
+                .clone()
+                .into_shape(self.conv3.kernel.len())
+                .unwrap(),
+            self.conv3.bias.clone(),
+            self.dense1
+                .weights
+                .clone()
+                .into_shape(self.dense1.weights.len())
+                .unwrap(),
+            self.dense1.bias.clone(),
+            self.dense2
+                .weights
+                .clone()
+                .into_shape(self.dense2.weights.len())
+                .unwrap(),
+            self.dense2.bias.clone(),
+        ];
 
-    // Perform the convolution
-    for i in 0..output_height {
-        for j in 0..output_width {
-            let mut sum = 0.0;
-            for ki in 0..kernel_size.0 {
-                for kj in 0..kernel_size.1 {
-                    let input_value = padded_input[i * strides.0 + ki][j * strides.1 + kj];
-                    let kernel_value = kernel[ki][kj];
-                    sum += input_value * kernel_value;
-                }
-            }
-            output[i][j] = apply_activation(sum, &activation);
-        }
+        (loss, grads)
     }
 
-    output
+    pub fn save_weights(&self, filename: &str) -> std::io::Result<()> {
+        let weights = CNNWeights {
+            conv1: Conv2DWeights {
+                kernel: self
+                    .conv1
+                    .kernel
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .as_slice()
+                    .unwrap()
+                    .to_vec(),
+                kernel_shape: self.conv1.kernel.shape().to_vec(),
+                bias: self
+                    .conv1
+                    .bias
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .to_vec(),
+            },
+            conv2: Conv2DWeights {
+                kernel: self
+                    .conv2
+                    .kernel
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .as_slice()
+                    .unwrap()
+                    .to_vec(),
+                kernel_shape: self.conv2.kernel.shape().to_vec(),
+                bias: self
+                    .conv2
+                    .bias
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .to_vec(),
+            },
+            conv3: Conv2DWeights {
+                kernel: self
+                    .conv3
+                    .kernel
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .as_slice()
+                    .unwrap()
+                    .to_vec(),
+                kernel_shape: self.conv3.kernel.shape().to_vec(),
+                bias: self
+                    .conv3
+                    .bias
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .to_vec(),
+            },
+            dense1: DenseWeights {
+                weights: self
+                    .dense1
+                    .weights
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .as_slice()
+                    .unwrap()
+                    .to_vec(),
+                weights_shape: self.dense1.weights.shape().to_vec(),
+                bias: self
+                    .dense1
+                    .bias
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .to_vec(),
+            },
+            dense2: DenseWeights {
+                weights: self
+                    .dense2
+                    .weights
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .as_slice()
+                    .unwrap()
+                    .to_vec(),
+                weights_shape: self.dense2.weights.shape().to_vec(),
+                bias: self
+                    .dense2
+                    .bias
+                    .mapv(|x| if x.is_finite() { x } else { 0.0 })
+                    .to_vec(),
+            },
+        };
+
+        let serialized = serde_json::to_string(&weights)?;
+        let mut file = File::create(filename)?;
+        file.write_all(serialized.as_bytes())?;
+        Ok(())
+    }
+
+    pub fn load_weights(filename: &str) -> std::io::Result<Self> {
+        let mut file = File::open(filename)?;
+        let mut contents = String::new();
+        file.read_to_string(&mut contents)?;
+
+        let weights: CNNWeights = serde_json::from_str(&contents)?;
+
+        Ok(CNN {
+            conv1: Conv2D::from_weights(
+                weights.conv1.kernel,
+                weights.conv1.kernel_shape,
+                weights.conv1.bias,
+            ),
+            conv2: Conv2D::from_weights(
+                weights.conv2.kernel,
+                weights.conv2.kernel_shape,
+                weights.conv2.bias,
+            ),
+            conv3: Conv2D::from_weights(
+                weights.conv3.kernel,
+                weights.conv3.kernel_shape,
+                weights.conv3.bias,
+            ),
+            dense1: Dense::from_weights(
+                weights.dense1.weights,
+                weights.dense1.weights_shape,
+                weights.dense1.bias,
+                |x| x.max(0.0), // ReLU activation
+            ),
+            dense2: Dense::from_weights(
+                weights.dense2.weights,
+                weights.dense2.weights_shape,
+                weights.dense2.bias,
+                |x| x, // Linear activation
+            ),
+        })
+    }
 }
