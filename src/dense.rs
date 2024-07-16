@@ -1,6 +1,7 @@
 use ndarray::{Array, Array1, Array2, ArrayViewMut, IxDyn};
 use ndarray_rand::rand_distr::Uniform;
 use ndarray_rand::RandomExt;
+use rand_distr::Normal;
 
 pub struct Dense {
     pub weights: Array2<f32>,
@@ -20,8 +21,15 @@ fn outer_product(a: &Array1<f32>, b: &Array1<f32>) -> Array2<f32> {
 
 impl Dense {
     pub fn new(input_size: usize, output_size: usize, activation: fn(f32) -> f32) -> Self {
-        let weights = Array::random((input_size, output_size), Uniform::new(-0.01, 0.01));
+        // He init
+        let std_dev = (2.0 / input_size as f32).sqrt();
+        let weights = Array::random(
+            (input_size, output_size),
+            Normal::new(0.0, std_dev).unwrap(),
+        );
+
         let bias = Array::zeros(output_size);
+
         Dense {
             weights,
             bias,

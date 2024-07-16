@@ -4,21 +4,16 @@ use ndarray::{
 };
 
 pub fn sparse_categorical_crossentropy(y_true: usize, y_pred: &Array1<f32>) -> f32 {
-    const EPSILON: f32 = 1e-10;
     if y_true >= y_pred.len() {
         println!(
             "Warning: y_true ({}) is out of bounds for y_pred of length {}",
             y_true,
             y_pred.len()
         );
-        return -EPSILON.ln();
+        return f32::MAX;
     }
-    let loss = -(y_pred[y_true] + EPSILON).ln();
-    println!(
-        "True class: {}, Predicted probability: {}, Loss: {}",
-        y_true, y_pred[y_true], loss
-    );
-    loss
+    let epsilon = 1e-10;
+    -(y_pred[y_true] + epsilon).ln()
 }
 
 pub struct Adam {
@@ -49,10 +44,6 @@ impl Adam {
         params: &mut [&mut ArrayBase<ViewRepr<&mut f32>, IxDyn>],
         grads: &[ArrayBase<ViewRepr<&f32>, IxDyn>],
     ) {
-        info!("Starting Adam update");
-        debug!("Number of parameter arrays: {}", params.len());
-        debug!("Number of gradient arrays: {}", grads.len());
-
         if params.len() != grads.len() {
             error!(
                 "Number of parameter arrays ({}) does not match number of gradient arrays ({})",
@@ -82,12 +73,6 @@ impl Adam {
             .zip(self.m.iter_mut().zip(self.v.iter_mut()))
             .enumerate()
         {
-            debug!("Updating parameter {}", i);
-            debug!("Parameter shape: {:?}", param.shape());
-            debug!("Gradient shape: {:?}", grad.shape());
-            debug!("m shape: {:?}", m.shape());
-            debug!("v shape: {:?}", v.shape());
-
             if param.shape() != grad.shape()
                 || param.shape() != m.shape()
                 || param.shape() != v.shape()
@@ -114,8 +99,6 @@ impl Adam {
             let update = &(&m_hat / &(v_hat.mapv(|x| x.sqrt()) + self.epsilon)) * lr_t;
             **param -= &update;
         }
-
-        info!("Adam update completed");
     }
 }
 

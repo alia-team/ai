@@ -9,6 +9,21 @@ use std::{
     io::{BufRead, BufReader},
 };
 
+fn softmax(x: &Array1<f32>) -> Array1<f32> {
+    let max_val = x.fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+    let exp = x.mapv(|a| (a - max_val).exp());
+    let sum = exp.sum();
+    exp / sum
+}
+
+fn l2_regularization(cnn: &CNN, lambda: f32) -> f32 {
+    let mut reg_loss = 0.0;
+    reg_loss += cnn.conv1.kernel.mapv(|x| x * x).sum();
+    reg_loss += cnn.dense1.weights.mapv(|x| x * x).sum();
+    reg_loss += cnn.dense2.weights.mapv(|x| x * x).sum();
+    0.5 * lambda * reg_loss
+}
+
 fn train(
     cnn: &mut CNN,
     inputs: &[Array3<f32>],
@@ -16,6 +31,7 @@ fn train(
     epochs: usize,
     batch_size: usize,
     initial_lr: f32,
+    lambda: f32,
 ) {
     let mut adam = Adam::new(initial_lr, 0.9, 0.999, 1e-8);
     let lr_scheduler = LRScheduler::new(initial_lr, 0.95, 1000);
@@ -31,7 +47,7 @@ fn train(
             let batch_inputs = &inputs[start..end];
             let batch_targets = &targets[start..end];
 
-            let (batch_loss, batch_grads) = process_batch(cnn, batch_inputs, batch_targets);
+            let (batch_loss, batch_grads) = process_batch(cnn, batch_inputs, batch_targets, lambda);
             println!("Batch loss: {}", batch_loss);
 
             total_loss += batch_loss;
@@ -44,20 +60,8 @@ fn train(
                 &mut [
                     &mut cnn.conv1.kernel.view_mut().into_dyn(),
                     &mut cnn.conv1.bias.view_mut().into_dyn(),
-                    &mut cnn.bn1.gamma.view_mut().into_dyn(),
-                    &mut cnn.bn1.beta.view_mut().into_dyn(),
-                    &mut cnn.conv2.kernel.view_mut().into_dyn(),
-                    &mut cnn.conv2.bias.view_mut().into_dyn(),
-                    &mut cnn.bn2.gamma.view_mut().into_dyn(),
-                    &mut cnn.bn2.beta.view_mut().into_dyn(),
-                    &mut cnn.conv3.kernel.view_mut().into_dyn(),
-                    &mut cnn.conv3.bias.view_mut().into_dyn(),
-                    &mut cnn.bn3.gamma.view_mut().into_dyn(),
-                    &mut cnn.bn3.beta.view_mut().into_dyn(),
                     &mut cnn.dense1.weights.view_mut().into_dyn(),
                     &mut cnn.dense1.bias.view_mut().into_dyn(),
-                    &mut cnn.bn4.gamma.view_mut().into_dyn(),
-                    &mut cnn.bn4.beta.view_mut().into_dyn(),
                     &mut cnn.dense2.weights.view_mut().into_dyn(),
                     &mut cnn.dense2.bias.view_mut().into_dyn(),
                 ],
@@ -79,6 +83,7 @@ fn process_batch(
     cnn: &mut CNN,
     inputs: &[Array3<f32>],
     targets: &[usize],
+    lambda: f32, // L2 regularization strength
 ) -> (f32, Vec<ArrayBase<OwnedRepr<f32>, IxDyn>>) {
     let batch_size = inputs.len();
     let mut sample_counter: usize = 0;
@@ -89,11 +94,16 @@ fn process_batch(
         match cnn.backward(input, target) {
             Ok((sample_loss, sample_grads)) => {
                 sample_counter += 1;
+
+                // Add L2 regularization to the loss
+                let l2_loss = l2_regularization(cnn, lambda);
+                let total_sample_loss = sample_loss + l2_loss;
+
                 println!(
-                    "Sample loss {}/{}: {}",
-                    sample_counter, batch_size, sample_loss
+                    "Sample loss {}/{}: {} (CE: {}, L2: {})",
+                    sample_counter, batch_size, total_sample_loss, sample_loss, l2_loss
                 );
-                total_loss += sample_loss;
+                total_loss += total_sample_loss;
 
                 // Accumulate gradients
                 total_grads = Some(match total_grads {
@@ -111,6 +121,7 @@ fn process_batch(
             }
             Err(e) => {
                 println!("Error processing sample: {}", e);
+                continue;
             }
         }
     }
@@ -177,7 +188,7 @@ fn cnn() {
     let (samples, targets) = load_mnist("train.csv");
 
     // Train the model
-    train(&mut cnn, &samples, &targets, 1, 32, 0.001);
+    train(&mut cnn, &samples, &targets, 1, 32, 0.0001, 0.0001); // Reduced initial_lr from 0.001 to 0.0001
     cnn.save_weights("weights.json").unwrap();
 
     CNN::load_weights("weights.json").unwrap();
