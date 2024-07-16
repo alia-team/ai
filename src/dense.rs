@@ -34,20 +34,24 @@ impl Dense {
         output.mapv(self.activation)
     }
 
-    pub fn backward(&mut self, input: &Array1<f32>, grad_output: &Array1<f32>) -> Array1<f32> {
+    pub fn backward(
+        &mut self,
+        input: &Array1<f32>,
+        grad_output: &Array1<f32>,
+    ) -> (Array1<f32>, Array2<f32>, Array1<f32>) {
         let grad_input = grad_output.dot(&self.weights.t());
         let mut grad_weights = outer_product(input, grad_output);
         let mut grad_bias = grad_output.clone();
 
         // Gradient norm clipping
-        clip_gradient_norm(&mut grad_weights.view_mut(), 1.0, 1.0);
-        clip_gradient_norm(&mut grad_bias.view_mut(), 1.0, 1.0);
+        clip_gradient_norm(&mut grad_weights.view_mut(), 5.0, 5.0);
+        clip_gradient_norm(&mut grad_bias.view_mut(), 5.0, 5.0);
 
         // Update weights and biases
         self.weights -= &grad_weights;
         self.bias -= &grad_bias;
 
-        grad_input
+        (grad_input, grad_weights, grad_bias)
     }
 
     pub fn from_weights(

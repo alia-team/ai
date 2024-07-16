@@ -1,8 +1,24 @@
-use ndarray::{Array1, ArrayView1, ArrayViewMut1};
+use log::{debug, error, info};
+use ndarray::{
+    Array, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Dim, IxDyn, IxDynImpl, OwnedRepr, ViewRepr,
+};
 
 pub fn sparse_categorical_crossentropy(y_true: usize, y_pred: &Array1<f32>) -> f32 {
-    const EPSILON: f32 = 1e-7;
-    -(y_pred[y_true].max(EPSILON).ln())
+    const EPSILON: f32 = 1e-10;
+    if y_true >= y_pred.len() {
+        println!(
+            "Warning: y_true ({}) is out of bounds for y_pred of length {}",
+            y_true,
+            y_pred.len()
+        );
+        return -EPSILON.ln();
+    }
+    let loss = -(y_pred[y_true] + EPSILON).ln();
+    println!(
+        "True class: {}, Predicted probability: {}, Loss: {}",
+        y_true, y_pred[y_true], loss
+    );
+    loss
 }
 
 pub struct Adam {
@@ -11,8 +27,8 @@ pub struct Adam {
     pub beta2: f32,
     pub epsilon: f32,
     pub t: usize,
-    pub m: Vec<Array1<f32>>,
-    pub v: Vec<Array1<f32>>,
+    pub m: Vec<ArrayBase<OwnedRepr<f32>, Dim<IxDynImpl>>>,
+    pub v: Vec<ArrayBase<OwnedRepr<f32>, Dim<IxDynImpl>>>,
 }
 
 impl Adam {
@@ -28,26 +44,78 @@ impl Adam {
         }
     }
 
-    pub fn update(&mut self, params: &mut [ArrayViewMut1<f32>], grads: &[ArrayView1<f32>]) {
-        //println!("Updating parameters using Adam...");
+    pub fn update(
+        &mut self,
+        params: &mut [&mut ArrayBase<ViewRepr<&mut f32>, IxDyn>],
+        grads: &[ArrayBase<ViewRepr<&f32>, IxDyn>],
+    ) {
+        info!("Starting Adam update");
+        debug!("Number of parameter arrays: {}", params.len());
+        debug!("Number of gradient arrays: {}", grads.len());
+
+        if params.len() != grads.len() {
+            error!(
+                "Number of parameter arrays ({}) does not match number of gradient arrays ({})",
+                params.len(),
+                grads.len()
+            );
+            panic!("Number of parameter arrays does not match number of gradient arrays");
+        }
+
         if self.m.is_empty() {
-            self.m = params.iter().map(|p| Array1::zeros(p.dim())).collect();
-            self.v = params.iter().map(|p| Array1::zeros(p.dim())).collect();
+            self.m = params.iter().map(|p| Array::zeros(p.raw_dim())).collect();
+            self.v = params.iter().map(|p| Array::zeros(p.raw_dim())).collect();
+        }
+
+        if self.m.len() != params.len() || self.v.len() != params.len() {
+            error!("Mismatch in number of parameter arrays ({}) and optimizer state arrays (m: {}, v: {})", params.len(), self.m.len(), self.v.len());
+            panic!("Mismatch in number of parameter arrays and optimizer state arrays");
         }
 
         self.t += 1;
         let lr_t = self.lr * (1.0 - self.beta2.powi(self.t as i32)).sqrt()
             / (1.0 - self.beta1.powi(self.t as i32));
 
-        for ((param, grad), (m, v)) in params
+        for (i, ((param, grad), (m, v))) in params
             .iter_mut()
             .zip(grads)
             .zip(self.m.iter_mut().zip(self.v.iter_mut()))
+            .enumerate()
         {
-            *m = self.beta1 * &*m + (1.0 - self.beta1) * grad;
-            *v = self.beta2 * &*v + (1.0 - self.beta2) * grad.mapv(|x| x * x);
-            *param -= &(lr_t * &*m / (v.mapv(|x| x.sqrt()) + self.epsilon));
+            debug!("Updating parameter {}", i);
+            debug!("Parameter shape: {:?}", param.shape());
+            debug!("Gradient shape: {:?}", grad.shape());
+            debug!("m shape: {:?}", m.shape());
+            debug!("v shape: {:?}", v.shape());
+
+            if param.shape() != grad.shape()
+                || param.shape() != m.shape()
+                || param.shape() != v.shape()
+            {
+                error!(
+                    "Dimension mismatch for parameter {}: param {:?}, grad {:?}, m {:?}, v {:?}",
+                    i,
+                    param.shape(),
+                    grad.shape(),
+                    m.shape(),
+                    v.shape()
+                );
+                panic!(
+                    "Dimension mismatch between parameter, gradient, and optimizer state arrays"
+                );
+            }
+
+            *m = &(self.beta1 * &*m) + &((1.0 - self.beta1) * grad);
+            *v = &(self.beta2 * &*v) + &((1.0 - self.beta2) * &grad.mapv(|x| x * x));
+
+            let m_hat = m.mapv(|x| x / (1.0 - self.beta1.powi(self.t as i32)));
+            let v_hat = v.mapv(|x| x / (1.0 - self.beta2.powi(self.t as i32)));
+
+            let update = &(&m_hat / &(v_hat.mapv(|x| x.sqrt()) + self.epsilon)) * lr_t;
+            **param -= &update;
         }
+
+        info!("Adam update completed");
     }
 }
 

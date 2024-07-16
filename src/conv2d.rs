@@ -1,6 +1,6 @@
 use ndarray::{s, Array, Array1, Array3, ArrayD, ArrayViewMut, Axis, IxDyn};
 use ndarray_rand::RandomExt;
-use rand_distr::Uniform;
+use rand_distr::Normal;
 use rayon::prelude::*;
 use std::ops::AddAssign;
 use std::sync::Mutex;
@@ -13,12 +13,11 @@ pub struct Conv2D {
 
 impl Conv2D {
     pub fn new(input_channels: usize, filters: usize, kernel_size: usize) -> Self {
+        // He weights initialization
+        let std_dev = (2.0 / (input_channels * kernel_size * kernel_size) as f32).sqrt();
         let kernel = Array::random(
             IxDyn(&[filters, input_channels, kernel_size, kernel_size]),
-            Uniform::new(
-                -0.1 / (input_channels * kernel_size * kernel_size) as f32,
-                0.1 / (input_channels * kernel_size * kernel_size) as f32,
-            ),
+            Normal::new(0.0, std_dev).unwrap(),
         );
         let bias = Array::zeros(filters);
         Conv2D {
@@ -46,14 +45,18 @@ impl Conv2D {
                     .zip(self.kernel.index_axis(Axis(0), f).iter())
                     .map(|(&x, &k)| x * k)
                     .sum();
-                output[[h, w, f]] = (sum + self.bias[f]).max(0.0).min(20.0);
+                output[[h, w, f]] = (sum + self.bias[f]).max(0.0);
             }
         }
 
         output
     }
 
-    pub fn backward(&mut self, input: &Array3<f32>, grad_output: &Array3<f32>) -> Array3<f32> {
+    pub fn backward(
+        &mut self,
+        input: &Array3<f32>,
+        grad_output: &Array3<f32>,
+    ) -> (Array3<f32>, ArrayD<f32>, Array1<f32>) {
         let (height, width, _) = input.dim();
         let kernel_shape = self.kernel.shape();
         let (kernel_height, kernel_width) = (kernel_shape[2], kernel_shape[3]);
@@ -106,14 +109,14 @@ impl Conv2D {
         // Gradient norm clipping
         let mut grad_kernel = grad_kernel.into_inner().unwrap();
         let mut grad_bias = grad_bias.into_inner().unwrap();
-        clip_gradient_norm(&mut grad_kernel.view_mut(), 1.0, 1.0);
-        clip_gradient_norm(&mut grad_bias.view_mut(), 1.0, 1.0);
+        clip_gradient_norm(&mut grad_kernel.view_mut(), 5.0, 5.0);
+        clip_gradient_norm(&mut grad_bias.view_mut(), 5.0, 5.0);
 
         // Update weights and biases
         self.kernel -= &grad_kernel;
         self.bias -= &grad_bias;
 
-        grad_input.into_inner().unwrap()
+        (grad_input.into_inner().unwrap(), grad_kernel, grad_bias)
     }
 
     pub fn from_weights(kernel: Vec<f32>, kernel_shape: Vec<usize>, bias: Vec<f32>) -> Self {
@@ -139,14 +142,3 @@ where
         grad.mapv_inplace(|x| x * scale);
     }
 }
-
-
-
-
-                                   
-
-                                   
-
-                                   
-
-                                   
