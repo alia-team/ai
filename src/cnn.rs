@@ -2,7 +2,6 @@ use crate::conv2d::Conv2D;
 use crate::dense::Dense;
 use crate::fit::sparse_categorical_crossentropy;
 use crate::maxpool2d::MaxPool2D;
-use log::{debug, info};
 use ndarray::{Array1, Array3, ArrayBase, IxDyn, OwnedRepr};
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -63,23 +62,14 @@ impl CNN {
 
     pub fn forward(&mut self, input: &Array3<f32>) -> Array1<f32> {
         let mut x = self.conv1.forward(input);
-        debug!("Convolutional layer output before ReLU: {:?}", x);
         x = x.mapv(|v| v.max(0.0)); // ReLU
-        debug!("After ReLU: {:?}", x);
         let pool = MaxPool2D::new(2);
         x = pool.forward(&x);
-        debug!("Max pool output: {:?}", x);
 
         let flat = x.clone().into_shape(x.len()).unwrap();
-        debug!("Flat output: {:?}", flat);
         let x = self.dense1.forward(&flat);
-        debug!("Dense 1 output before ReLU : {:?}", x);
         let x = x.mapv(|v| v.max(0.0)); // ReLU
-        debug!("After ReLU : {:?}", x);
         let x = self.dense2.forward(&x);
-
-        // Log pre-softmax output
-        debug!("Pre-softmax output: {:?}", x);
 
         x
     }
@@ -98,11 +88,8 @@ impl CNN {
         let x_relu2 = x_dense1.mapv(|v| v.max(0.0));
         let output = self.dense2.forward(&x_relu2);
 
-        // Apply softmax
-        let softmax_output = self.softmax(&output);
-
-        // Calculate loss
-        let loss = sparse_categorical_crossentropy(target, &softmax_output);
+        // Calculate loss. Softmax is applied in the following function
+        let loss = sparse_categorical_crossentropy(target, &output, true);
 
         // Check for infinite or NaN loss
         if !loss.is_finite() {
@@ -110,7 +97,7 @@ impl CNN {
         }
 
         // Backward pass
-        let mut grad = softmax_output;
+        let mut grad = output;
         grad[target] -= 1.0;
 
         // Dense2 backward

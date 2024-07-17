@@ -1,9 +1,12 @@
-use log::{debug, error, info};
+use log::error;
 use ndarray::{
     Array, Array1, ArrayBase, ArrayView1, ArrayViewMut1, Dim, IxDyn, IxDynImpl, OwnedRepr, ViewRepr,
 };
 
-pub fn sparse_categorical_crossentropy(y_true: usize, y_pred: &Array1<f32>) -> f32 {
+pub fn sparse_categorical_crossentropy(y_true: usize, y_pred: &Array1<f32>, verbose: bool) -> f32 {
+    if verbose {
+        println!("Target: {}", y_true);
+    }
     if y_true >= y_pred.len() {
         println!(
             "Warning: y_true ({}) is out of bounds for y_pred of length {}",
@@ -12,8 +15,35 @@ pub fn sparse_categorical_crossentropy(y_true: usize, y_pred: &Array1<f32>) -> f
         );
         return f32::MAX;
     }
-    let epsilon = 1e-10;
-    -(y_pred[y_true] + epsilon).ln()
+    let epsilon = 1e-7;
+
+    if verbose {
+        println!("Output before softmax: {:?}", y_pred.to_vec());
+    }
+
+    // Apply softmax
+    let max_val = y_pred.fold(f32::NEG_INFINITY, |a, &b| a.max(b));
+    let exp = y_pred.mapv(|a| (a - max_val).exp());
+    let sum = exp.sum();
+    let softmax = exp / (sum + epsilon);
+
+    if verbose {
+        println!("Output after softmax: {:?}", softmax.to_vec());
+    }
+
+    // Get the predicted class (index of the highest value)
+    let predicted_class = softmax
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+        .map(|(index, _)| index)
+        .unwrap();
+
+    if verbose {
+        println!("Predicted class: {}", predicted_class);
+    }
+
+    -((softmax[y_true] + epsilon).ln())
 }
 
 pub struct Adam {

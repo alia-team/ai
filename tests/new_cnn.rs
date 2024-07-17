@@ -1,3 +1,4 @@
+use ai::fit::sparse_categorical_crossentropy;
 use ai::{
     cnn::CNN,
     fit::{Adam, LRScheduler},
@@ -14,6 +15,23 @@ fn softmax(x: &Array1<f32>) -> Array1<f32> {
     let exp = x.mapv(|a| (a - max_val).exp());
     let sum = exp.sum();
     exp / sum
+}
+
+fn calculate_accuracy(predictions: &[Array1<f32>], targets: &[usize]) -> f32 {
+    let correct = predictions
+        .iter()
+        .zip(targets)
+        .filter(|(pred, &target)| {
+            pred.iter()
+                .enumerate()
+                .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                .map(|(index, _)| index)
+                .unwrap()
+                == target
+        })
+        .count();
+
+    correct as f32 / predictions.len() as f32
 }
 
 fn l2_regularization(cnn: &CNN, lambda: f32) -> f32 {
@@ -37,9 +55,10 @@ fn train(
     let lr_scheduler = LRScheduler::new(initial_lr, 0.95, 1000);
     let num_batches = inputs.len() / batch_size;
 
-    for epoch in 0..epochs {
-        let mut total_loss = 0.0;
+    let mut model_loss = 0.0;
+    let mut total_correct = 0;
 
+    for epoch in 0..epochs {
         for batch in 0..num_batches {
             println!("Batch {}/{}...", batch + 1, num_batches);
             let start = batch * batch_size;
@@ -47,10 +66,19 @@ fn train(
             let batch_inputs = &inputs[start..end];
             let batch_targets = &targets[start..end];
 
-            let (batch_loss, batch_grads) = process_batch(cnn, batch_inputs, batch_targets, lambda);
-            println!("Batch loss: {}", batch_loss);
+            let (batch_loss, batch_grads, batch_correct, batch_samples) =
+                process_batch(cnn, batch_inputs, batch_targets, lambda);
 
-            total_loss += batch_loss;
+            let batch_accuracy = batch_correct as f32 / batch_samples as f32 * 100.;
+
+            model_loss += batch_loss;
+            total_correct += batch_correct;
+
+            println!();
+            println!(
+                "Batch loss: {}, Batch accuracy: {}%",
+                batch_loss, batch_accuracy
+            );
 
             // Update learning rate
             adam.lr = lr_scheduler.get_lr(epoch * num_batches + batch);
@@ -68,42 +96,63 @@ fn train(
                 &batch_grads.iter().map(|g| g.view()).collect::<Vec<_>>(),
             );
         }
-
-        println!(
-            "Epoch {}/{}: Loss = {}, LR = {}",
-            epoch + 1,
-            epochs,
-            total_loss / (num_batches as f32),
-            adam.lr
-        );
     }
+
+    println!();
+    println!("Model loss: {}", model_loss);
+    println!(
+        "Model accuracy: {}%",
+        total_correct as f32 / (batch_size * num_batches * epochs) as f32 * 100.
+    );
 }
 
 fn process_batch(
     cnn: &mut CNN,
     inputs: &[Array3<f32>],
     targets: &[usize],
-    lambda: f32, // L2 regularization strength
-) -> (f32, Vec<ArrayBase<OwnedRepr<f32>, IxDyn>>) {
+    lambda: f32,
+) -> (f32, Vec<ArrayBase<OwnedRepr<f32>, IxDyn>>, usize, usize) {
     let batch_size = inputs.len();
     let mut sample_counter: usize = 0;
     let mut total_loss = 0.0;
     let mut total_grads: Option<Vec<ArrayBase<OwnedRepr<f32>, IxDyn>>> = None;
+    let mut correct_predictions = 0;
 
     for (input, &target) in inputs.iter().zip(targets.iter()) {
-        match cnn.backward(input, target) {
-            Ok((sample_loss, sample_grads)) => {
-                sample_counter += 1;
+        sample_counter += 1;
+        println!();
+        println!("Sample {}/{}", sample_counter, batch_size);
+        let prediction = cnn.forward(input);
+        let sample_loss = sparse_categorical_crossentropy(target, &prediction, false);
 
+        match cnn.backward(input, target) {
+            Ok((_, sample_grads)) => {
                 // Add L2 regularization to the loss
                 let l2_loss = l2_regularization(cnn, lambda);
                 let total_sample_loss = sample_loss + l2_loss;
 
                 println!(
-                    "Sample loss {}/{}: {} (CE: {}, L2: {})",
-                    sample_counter, batch_size, total_sample_loss, sample_loss, l2_loss
+                    "Loss {} (CE: {}, L2: {})",
+                    total_sample_loss, sample_loss, l2_loss
                 );
                 total_loss += total_sample_loss;
+
+                // Calculate accuracy
+                let predicted_class = prediction
+                    .iter()
+                    .enumerate()
+                    .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap_or(std::cmp::Ordering::Equal))
+                    .map(|(index, _)| index)
+                    .unwrap();
+
+                if predicted_class == target {
+                    correct_predictions += 1;
+                }
+
+                println!(
+                    "Batch accuracy: {}%",
+                    correct_predictions as f32 / sample_counter as f32 * 100.
+                );
 
                 // Accumulate gradients
                 total_grads = Some(match total_grads {
@@ -138,7 +187,7 @@ fn process_batch(
         .map(|g| g.mapv(|v| v / sample_counter.max(1) as f32))
         .collect();
 
-    (batch_loss, batch_grads)
+    (batch_loss, batch_grads, correct_predictions, sample_counter)
 }
 
 fn load_mnist(file_path: &str) -> (Vec<Array3<f32>>, Vec<usize>) {
@@ -188,8 +237,6 @@ fn cnn() {
     let (samples, targets) = load_mnist("train.csv");
 
     // Train the model
-    train(&mut cnn, &samples, &targets, 1, 32, 0.0001, 0.0001); // Reduced initial_lr from 0.001 to 0.0001
+    train(&mut cnn, &samples, &targets, 1, 32, 0.0001, 0.0001);
     cnn.save_weights("weights.json").unwrap();
-
-    CNN::load_weights("weights.json").unwrap();
 }
