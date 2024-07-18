@@ -1,0 +1,186 @@
+use ndarray::{Array1, Array2, Array4};
+
+// Enum representing different optimization algorithms
+#[derive(Clone, Copy)]
+pub enum Optimizer {
+    SGD(f32),            // Stochastic Gradient Descent with learning rate
+    Momentum(f32, f32),  // Momentum with learning rate and momentum factor
+    RMSProp(f32, f32),   // RMSProp with learning rate and decay rate
+    Adam(f32, f32, f32), // Adam with learning rate, beta1, and beta2
+}
+
+// Optimizer for 2D parameters (e.g., fully connected layer weights)
+pub struct Optimizer2D {
+    pub alg: Optimizer,
+    pub momentum1: Array2<f32>, // First moment for Adam, velocity for Momentum
+    pub momentum2: Array2<f32>, // Second moment for Adam, velocity squared for RMSProp
+    pub t: i32,                 // Timestep for Adam
+    pub beta1_done: bool,       // Flag to optimize Adam computation
+    pub beta2_done: bool,       // Flag to optimize Adam computation
+}
+
+impl Optimizer2D {
+    // Create a new Optimizer2D instance
+    pub fn new(alg: Optimizer, input_size: usize, output_size: usize) -> Optimizer2D {
+        let momentum1 = Array2::<f32>::zeros((output_size, input_size));
+        let momentum2 = Array2::<f32>::zeros((output_size, input_size));
+        let t = 0;
+        let beta1_done = false;
+        let beta2_done = false;
+
+        Optimizer2D {
+            alg,
+            momentum1,
+            momentum2,
+            t,
+            beta1_done,
+            beta2_done,
+        }
+    }
+
+    // Calculate weight changes based on gradients and the chosen optimization algorithm
+    pub fn weight_changes(&mut self, gradients: &Array2<f32>) -> Array2<f32> {
+        match self.alg {
+            Optimizer::SGD(lr) => gradients * lr,
+            Optimizer::Momentum(lr, mu) => {
+                self.momentum1 = &self.momentum1 * mu + gradients;
+                &self.momentum1 * lr
+            }
+            Optimizer::RMSProp(lr, rho) => {
+                self.momentum1 = &self.momentum1 * rho;
+                self.momentum1 += &(gradients.mapv(|x| x.powi(2)) * (1.0 - rho));
+                gradients * lr / (self.momentum1.mapv(|x| x.sqrt()) + 1e-8)
+            }
+            Optimizer::Adam(lr, beta1, beta2) => {
+                self.t += 1;
+                // Update biased first moment estimate
+                self.momentum1 = &self.momentum1 * beta1;
+                self.momentum1 += &(gradients.mapv(|x| x * (1.0 - beta1)));
+                // Update biased second raw moment estimate
+                self.momentum2 = &self.momentum2 * beta2;
+                self.momentum2 += &(gradients.mapv(|x| x.powi(2) * (1.0 - beta2)));
+
+                // Compute bias correction factors
+                let biased_beta1 = if self.beta1_done {
+                    0.0
+                } else {
+                    let pow = beta1.powi(self.t);
+                    if pow < 0.001 {
+                        self.beta1_done = true;
+                    }
+                    pow
+                };
+                let biased_beta2 = if self.beta2_done {
+                    0.0
+                } else {
+                    let pow = beta2.powi(self.t);
+                    if pow < 0.001 {
+                        self.beta2_done = true;
+                    }
+                    pow
+                };
+
+                // Compute bias-corrected moment estimates
+                let weight_velocity_corrected = &self.momentum1 / (1.0 - biased_beta1);
+                let weight_velocity2_corrected = &self.momentum2 / (1.0 - biased_beta2);
+
+                // Compute and return the Adam update
+                &weight_velocity_corrected * lr
+                    / (weight_velocity2_corrected.mapv(|x| x.sqrt()) + 1e-8)
+            }
+        }
+    }
+
+    // Calculate bias changes (simplified version of weight changes for 1D array)
+    pub fn bias_changes(&mut self, gradients: &Array1<f32>) -> Array1<f32> {
+        match self.alg {
+            Optimizer::SGD(lr) => gradients * lr,
+            Optimizer::Momentum(lr, _) => gradients * lr,
+            Optimizer::RMSProp(lr, _) => gradients * lr,
+            Optimizer::Adam(lr, _, _) => gradients * lr,
+        }
+    }
+}
+
+// Optimizer for 4D parameters (e.g., convolutional layer weights)
+pub struct Optimizer4D {
+    pub alg: Optimizer,
+    pub momentum1: Array4<f32>, // First moment for Adam, velocity for Momentum
+    pub momentum2: Array4<f32>, // Second moment for Adam, velocity squared for RMSProp
+    pub t: i32,                 // Timestep for Adam
+    pub beta1_done: bool,       // Flag to optimize Adam computation
+    pub beta2_done: bool,       // Flag to optimize Adam computation
+}
+
+impl Optimizer4D {
+    // Create a new Optimizer4D instance
+    pub fn new(alg: Optimizer, size: (usize, usize, usize, usize)) -> Optimizer4D {
+        let momentum1 = Array4::<f32>::zeros(size);
+        let momentum2 = Array4::<f32>::zeros(size);
+        let t = 0;
+        let beta1_done = false;
+        let beta2_done = false;
+
+        Optimizer4D {
+            alg,
+            momentum1,
+            momentum2,
+            t,
+            beta1_done,
+            beta2_done,
+        }
+    }
+
+    // Calculate weight changes based on gradients and the chosen optimization algorithm
+    pub fn weight_changes(&mut self, gradients: &Array4<f32>) -> Array4<f32> {
+        match self.alg {
+            Optimizer::SGD(lr) => gradients * lr,
+            Optimizer::Momentum(lr, mu) => {
+                self.momentum1 = &self.momentum1 * mu + gradients;
+                &self.momentum1 * lr
+            }
+            Optimizer::RMSProp(lr, rho) => {
+                self.momentum1 = &self.momentum1 * rho;
+                self.momentum1 += &(gradients.mapv(|x| x.powi(2)) * (1.0 - rho));
+                gradients * lr / (self.momentum1.mapv(|x| x.sqrt()) + 1e-8)
+            }
+            Optimizer::Adam(lr, beta1, beta2) => {
+                self.t += 1;
+                // Update biased first moment estimate
+                self.momentum1 = &self.momentum1 * beta1;
+                self.momentum1 += &(gradients.mapv(|x| x * (1.0 - beta1)));
+                // Update biased second raw moment estimate
+                self.momentum2 = &self.momentum2 * beta2;
+                self.momentum2 += &(gradients.mapv(|x| x.powi(2) * (1.0 - beta2)));
+
+                // Compute bias correction factors
+                let biased_beta1 = if self.beta1_done {
+                    0.0
+                } else {
+                    let pow = beta1.powi(self.t);
+                    if pow < 0.001 {
+                        self.beta1_done = true;
+                    }
+                    pow
+                };
+                let biased_beta2 = if self.beta2_done {
+                    0.0
+                } else {
+                    let pow = beta2.powi(self.t);
+                    if pow < 0.001 {
+                        self.beta2_done = true;
+                    }
+                    pow
+                };
+
+                // Compute bias-corrected moment estimates
+                let weight_velocity_corrected = &self.momentum1 / (1.0 - biased_beta1);
+                let weight_velocity2_corrected = &self.momentum2 / (1.0 - biased_beta2);
+
+                // Compute and return the Adam update
+                &weight_velocity_corrected * lr
+                    / (weight_velocity2_corrected.mapv(|x| x.sqrt()) + 1e-8)
+            }
+        }
+    }
+}

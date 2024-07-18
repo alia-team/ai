@@ -1,82 +1,96 @@
-/*
-use ai::cnn::{self, Activation, Padding};
+use ai::cnn::activation::{ReLU, Softmax};
+use ai::cnn::model::*;
+use ai::cnn::optimizer::Optimizer;
+use ai::cnn::util::{TrainImage, TrainingData};
+use ndarray::Array3;
+use rust_mnist::Mnist;
+use std::collections::HashMap;
+use std::path::Path;
 
-#[test]
-fn max_pool_2d() {
-    let input: Vec<Vec<f64>> = vec![
-        vec![12.0, 20.0, 30.0, 0.0],
-        vec![8.0, 12.0, 2.0, 0.0],
-        vec![34.0, 70.0, 37.0, 4.0],
-        vec![112.0, 100.0, 25.0, 12.0],
-    ];
-    let pool_size: (usize, usize) = (2, 2);
-    let stride: usize = 2;
-    let padding: Padding = Padding::Valid;
-    let expected_output: Vec<Vec<f64>> = vec![vec![20.0, 30.0], vec![112.0, 37.0]];
-    assert_eq!(
-        cnn::max_pool_2d(&input, pool_size, stride, padding),
-        expected_output
-    );
+pub fn load_mnist<T>(mnist_path: T) -> TrainingData
+where
+    T: AsRef<Path>,
+{
+    let (rows, cols) = (28, 28);
+    let mnist_path = mnist_path.as_ref();
+    let mnist = Mnist::new(mnist_path.to_str().unwrap());
 
-    let padding: Padding = Padding::Same;
-    let expected_output: Vec<Vec<f64>> = vec![
-        vec![0.0, 0.0, 0.0, 0.0],
-        vec![0.0, 20.0, 30.0, 0.0],
-        vec![0.0, 112.0, 37.0, 0.0],
-        vec![0.0, 0.0, 0.0, 0.0],
-    ];
-    assert_eq!(
-        cnn::max_pool_2d(&input, pool_size, stride, padding),
-        expected_output
-    );
+    let mut trn_img = Vec::<TrainImage>::new();
+    let mut trn_lbl = Vec::<usize>::new();
+    let mut tst_img = Vec::<TrainImage>::new();
+    let mut tst_lbl = Vec::<usize>::new();
 
-    let pool_size: (usize, usize) = (3, 2);
-    let stride: usize = 1;
-    let expected_output: Vec<Vec<f64>> = vec![
-        vec![20.0, 30.0, 30.0, 0.0],
-        vec![70.0, 70.0, 37.0, 4.0],
-        vec![112.0, 100.0, 37.0, 12.0],
-        vec![112.0, 100.0, 37.0, 12.0],
-    ];
-    assert_eq!(
-        cnn::max_pool_2d(&input, pool_size, stride, padding),
-        expected_output
-    );
+    // Make unpacked folder inside mnist_path
+    let mnist_path = mnist_path.join("unpacked");
+    if !mnist_path.exists() {
+        std::fs::create_dir(mnist_path.as_path()).expect("Failed to create unpacked folder.");
+    }
+
+    for i in 0..1000 {
+        let mut img: Array3<f32> = Array3::<f32>::zeros((rows, cols, 1));
+
+        for j in 0..rows {
+            for k in 0..cols {
+                img[[j, k, 0]] = mnist.train_data[i][(j * 28 + k) as usize] as f32 / 255.0;
+            }
+        }
+        trn_img.push(TrainImage::Image(img));
+        trn_lbl.push(mnist.train_labels[i] as usize);
+    }
+
+    for i in 0..100 {
+        let mut img: Array3<f32> = Array3::<f32>::zeros((rows, cols, 1));
+
+        for j in 0..rows {
+            for k in 0..cols {
+                img[[j, k, 0]] = mnist.test_data[i][(j * 28 + k) as usize] as f32 / 255.0;
+            }
+        }
+        tst_img.push(TrainImage::Image(img));
+        tst_lbl.push(mnist.test_labels[i] as usize);
+    }
+
+    // 'classes' allows us to only train on a subset of the data
+    // Here, we use all 10 classes
+
+    let classes: HashMap<usize, usize> = (0..10).enumerate().collect();
+
+    let training_data: TrainingData = TrainingData {
+        trn_img,
+        trn_lbl,
+        tst_img,
+        tst_lbl,
+        rows,
+        cols,
+        trn_size: 1000,
+        tst_size: 100,
+        classes,
+    };
+
+    training_data
 }
 
 #[test]
-fn conv_2d() {
-    let input: Vec<Vec<f64>> = vec![
-        vec![7.0, 2.0, 3.0, 3.0, 8.0],
-        vec![4.0, 5.0, 3.0, 8.0, 4.0],
-        vec![3.0, 3.0, 2.0, 8.0, 4.0],
-        vec![2.0, 8.0, 7.0, 2.0, 7.0],
-        vec![5.0, 4.0, 4.0, 5.0, 4.0],
-    ];
-    let strides = (1, 1);
-    let kernel = Some(vec![
-        vec![1.0, 0.0, -1.0],
-        vec![1.0, 0.0, -1.0],
-        vec![1.0, 0.0, -1.0],
-    ]);
-    let kernel_size = None;
-    let filters = 1;
-    let padding = Padding::Valid;
-    let activation = Activation::Identity;
-    let output = cnn::conv_2d(
-        &input,
-        strides,
-        kernel,
-        kernel_size,
-        filters,
-        padding,
-        activation,
-    );
-    let expected_output: Vec<Vec<f64>> = vec![
-        vec![6.0, -9.0, -8.0],
-        vec![-3.0, -2.0, -3.0],
-        vec![-3.0, 0.0, -2.0],
-    ];
-    assert_eq!(output, expected_output);
+fn mnist() {
+    // Load MNIST dataset
+    let data = load_mnist("./data/");
+
+    // Set hyperparameters
+    let hyperparameters = Hyperparameters {
+        batch_size: 10,
+        epochs: 10,
+        optimizer: Optimizer::Adam(0.001, 0.9, 0.9),
+        ..Hyperparameters::default()
+    };
+
+    // Create CNN architecture
+    let mut cnn = CNN::new(data, hyperparameters);
+    cnn.set_input_shape(vec![28, 28, 3]);
+    cnn.add_conv_layer(8, 3);
+    cnn.add_mxpl_layer(2);
+    cnn.add_dense_layer(128, Box::new(ReLU), Some(0.25));
+    cnn.add_dense_layer(64, Box::new(ReLU), Some(0.25));
+    cnn.add_dense_layer(10, Box::new(Softmax), None);
+
+    cnn.train();
 }
-*/

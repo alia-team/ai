@@ -1,14 +1,9 @@
 pub mod activation;
-pub mod batchnorm;
 pub mod cnn;
-pub mod conv2d;
 pub mod data_processing;
-pub mod dense;
-pub mod fit;
 pub mod layer;
 pub mod linear_regression;
 pub mod loss;
-pub mod maxpool2d;
 pub mod mlp;
 pub mod model;
 pub mod naive_rbf;
