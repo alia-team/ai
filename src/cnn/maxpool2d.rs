@@ -1,7 +1,7 @@
 use ndarray::{Array3, Array4};
 use std::fmt::{Debug, Formatter};
 
-pub struct MxplLayer {
+pub struct MaxPool2D {
     input_size: (usize, usize, usize),
     kernel_size: usize,
     pub output_size: (usize, usize, usize),
@@ -9,7 +9,7 @@ pub struct MxplLayer {
     stride: usize,
 }
 
-impl Debug for MxplLayer {
+impl Debug for MaxPool2D {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         let mut s = String::new();
         s.push_str("Max Pooling Layer\n");
@@ -31,12 +31,12 @@ impl Debug for MxplLayer {
     }
 }
 
-impl MxplLayer {
+impl MaxPool2D {
     /// Create a new max pooling layer with the given parameters
-    pub fn new(input_size: (usize, usize, usize), kernel_size: usize, stride: usize) -> MxplLayer {
+    pub fn new(input_size: (usize, usize, usize), kernel_size: usize, stride: usize) -> MaxPool2D {
         let output_width: usize = ((input_size.0 - kernel_size) / stride) + 1;
         let output_size = (output_width, output_width, input_size.2);
-        let layer: MxplLayer = MxplLayer {
+        let layer: MaxPool2D = MaxPool2D {
             input_size,
             kernel_size,
             output_size,

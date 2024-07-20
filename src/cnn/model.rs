@@ -1,7 +1,7 @@
 use crate::cnn::activation::Activation;
 use crate::cnn::optimizer::Optimizer;
 use crate::cnn::util::*;
-use crate::cnn::{conv::ConvLayer, dense::DenseLayer, layer::Layer, mxpl::MxplLayer};
+use crate::cnn::{conv2d::Conv2D, dense::Dense, layer::LayerType, maxpool2d::MaxPool2D};
 use core::panic;
 use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::{Array1, Array3};
@@ -25,7 +25,7 @@ impl Default for Hyperparameters {
 }
 
 pub struct CNN {
-    layers: Vec<Layer>,
+    layers: Vec<LayerType>,
     layer_order: Vec<String>,
     data: TrainingData,
     minibatch_size: usize,
@@ -73,14 +73,14 @@ impl CNN {
             panic!("Input shape not set, use cnn.set_input_shape()");
         }
         let input_size: (usize, usize, usize) = match self.layers.last() {
-            Some(Layer::Conv(conv_layer)) => conv_layer.output_size,
-            Some(Layer::Mxpl(mxpl_layer)) => mxpl_layer.output_size,
-            Some(Layer::Dense(_)) => panic!("Convolutional Layer cannot follow a Dense Layer"),
+            Some(LayerType::Conv(conv_layer)) => conv_layer.output_size,
+            Some(LayerType::Mxpl(mxpl_layer)) => mxpl_layer.output_size,
+            Some(LayerType::Dense(_)) => panic!("Convolutional Layer cannot follow a Dense Layer"),
             None => self.input_shape,
         };
-        let conv_layer: ConvLayer =
-            ConvLayer::new(input_size, kernel_size, 1, num_filters, self.optimizer);
-        self.layers.push(Layer::Conv(conv_layer));
+        let conv_layer: Conv2D =
+            Conv2D::new(input_size, kernel_size, 1, num_filters, self.optimizer);
+        self.layers.push(LayerType::Conv(conv_layer));
         self.layer_order.push(String::from("conv"));
     }
 
@@ -89,13 +89,13 @@ impl CNN {
             panic!("Input shape not set, use cnn.set_input_shape()");
         }
         let input_size: (usize, usize, usize) = match self.layers.last() {
-            Some(Layer::Conv(conv_layer)) => conv_layer.output_size,
-            Some(Layer::Mxpl(mxpl_layer)) => mxpl_layer.output_size,
-            Some(Layer::Dense(_)) => panic!("Max Pooling Layer cannot follow a Dense Layer"),
+            Some(LayerType::Conv(conv_layer)) => conv_layer.output_size,
+            Some(LayerType::Mxpl(mxpl_layer)) => mxpl_layer.output_size,
+            Some(LayerType::Dense(_)) => panic!("Max Pooling Layer cannot follow a Dense Layer"),
             None => self.input_shape,
         };
-        let mxpl_layer: MxplLayer = MxplLayer::new(input_size, kernel_size, 2);
-        self.layers.push(Layer::Mxpl(mxpl_layer));
+        let mxpl_layer: MaxPool2D = MaxPool2D::new(input_size, kernel_size, 2);
+        self.layers.push(LayerType::Mxpl(mxpl_layer));
         self.layer_order.push(String::from("mxpl"));
     }
 
@@ -110,13 +110,13 @@ impl CNN {
         }
         // Find last layer's output size
         let transition_shape: (usize, usize, usize) = match self.layers.last() {
-            Some(Layer::Conv(conv_layer)) => conv_layer.output_size,
-            Some(Layer::Mxpl(mxpl_layer)) => mxpl_layer.output_size,
-            Some(Layer::Dense(dense_layer)) => (dense_layer.output_size, 1, 1),
+            Some(LayerType::Conv(conv_layer)) => conv_layer.output_size,
+            Some(LayerType::Mxpl(mxpl_layer)) => mxpl_layer.output_size,
+            Some(LayerType::Dense(dense_layer)) => (dense_layer.output_size, 1, 1),
             None => self.input_shape,
         };
         let input_size = transition_shape.0 * transition_shape.1 * transition_shape.2;
-        let fcl_layer: DenseLayer = DenseLayer::new(
+        let fcl_layer: Dense = Dense::new(
             input_size,
             output_size,
             activation,
@@ -124,7 +124,7 @@ impl CNN {
             dropout,
             transition_shape,
         );
-        self.layers.push(Layer::Dense(fcl_layer));
+        self.layers.push(LayerType::Dense(fcl_layer));
         self.layer_order.push(String::from("dense"));
     }
 
@@ -133,15 +133,15 @@ impl CNN {
         let mut flat_output: Array1<f32> = output.clone().into_shape(output.len()).unwrap();
         for layer in &mut self.layers {
             match layer {
-                Layer::Conv(conv_layer) => {
+                LayerType::Conv(conv_layer) => {
                     output = conv_layer.forward(output);
                     flat_output = output.clone().into_shape(output.len()).unwrap();
                 }
-                Layer::Mxpl(mxpl_layer) => {
+                LayerType::Mxpl(mxpl_layer) => {
                     output = mxpl_layer.forward(output);
                     flat_output = output.clone().into_shape(output.len()).unwrap();
                 }
-                Layer::Dense(dense_layer) => {
+                LayerType::Dense(dense_layer) => {
                     flat_output = dense_layer.forward(flat_output, training);
                 }
             }
@@ -152,8 +152,8 @@ impl CNN {
 
     pub fn last_layer_error(&mut self, label: usize) -> Array1<f32> {
         let size: usize = match self.layers.last().unwrap() {
-            Layer::Dense(dense_layer) => dense_layer.output_size,
-            _ => panic!("Last layer is not a DenseLayer"),
+            LayerType::Dense(dense_layer) => dense_layer.output_size,
+            _ => panic!("Last layer is not a Dense"),
         };
         let desired = Array1::<f32>::from_shape_fn(size, |i| (label == i) as usize as f32);
         self.output() - desired
@@ -167,13 +167,13 @@ impl CNN {
             .unwrap();
         for layer in self.layers.iter_mut().rev() {
             match layer {
-                Layer::Conv(conv_layer) => {
+                LayerType::Conv(conv_layer) => {
                     error = conv_layer.backward(error);
                 }
-                Layer::Mxpl(mxpl_layer) => {
+                LayerType::Mxpl(mxpl_layer) => {
                     error = mxpl_layer.backward(error);
                 }
-                Layer::Dense(dense_layer) => {
+                LayerType::Dense(dense_layer) => {
                     flat_error = dense_layer.backward(flat_error, training);
                     error = flat_error
                         .clone()
@@ -187,18 +187,18 @@ impl CNN {
     pub fn update(&mut self, minibatch_size: usize) {
         for layer in &mut self.layers {
             match layer {
-                Layer::Conv(conv_layer) => conv_layer.update(minibatch_size),
-                Layer::Mxpl(_) => {}
-                Layer::Dense(dense_layer) => dense_layer.update(minibatch_size),
+                LayerType::Conv(conv_layer) => conv_layer.update(minibatch_size),
+                LayerType::Mxpl(_) => {}
+                LayerType::Dense(dense_layer) => dense_layer.update(minibatch_size),
             }
         }
     }
 
     pub fn output(&self) -> Array1<f32> {
         match self.layers.last().unwrap() {
-            Layer::Conv(_) => panic!("Last layer is a ConvLayer"),
-            Layer::Mxpl(_) => panic!("Last layer is a MxplLayer"),
-            Layer::Dense(dense_layer) => dense_layer.output.clone(),
+            LayerType::Conv(_) => panic!("Last layer is a Conv2D"),
+            LayerType::Mxpl(_) => panic!("Last layer is a MaxPool2D"),
+            LayerType::Dense(dense_layer) => dense_layer.output.clone(),
         }
     }
 
@@ -219,10 +219,15 @@ impl CNN {
     pub fn train(&mut self) {
         for epoch in 0..self.epochs {
             let pb = ProgressBar::new((self.data.trn_size / self.minibatch_size) as u64);
-            pb.set_style(ProgressStyle::default_bar()
-                    .template(&format!("Epoch {}: [{{bar:.cyan/blue}}] {{pos}}/{{len}} - ETA: {{eta}} - acc: {{msg}}", epoch))
+            pb.set_style(
+                ProgressStyle::default_bar()
+                    .template(&format!(
+                        "Epoch {}: [{{bar}}] {{pos}}/{{len}} - acc: {{msg}}",
+                        epoch
+                    ))
                     .unwrap()
-                    .progress_chars("#>-"));
+                    .progress_chars("#-"),
+            );
 
             let mut avg_acc = 0.0;
             for i in 0..self.data.trn_size {
@@ -273,9 +278,9 @@ impl CNN {
     pub fn zero(&mut self) {
         for layer in &mut self.layers {
             match layer {
-                Layer::Conv(conv_layer) => conv_layer.zero(),
-                Layer::Mxpl(mxpl_layer) => mxpl_layer.zero(),
-                Layer::Dense(dense_layer) => dense_layer.zero(),
+                LayerType::Conv(conv_layer) => conv_layer.zero(),
+                LayerType::Mxpl(mxpl_layer) => mxpl_layer.zero(),
+                LayerType::Dense(dense_layer) => dense_layer.zero(),
             }
         }
     }

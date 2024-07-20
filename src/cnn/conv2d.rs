@@ -1,9 +1,9 @@
-use crate::cnn::optimizer::{Optimizer4D, Optimizer};
+use crate::cnn::optimizer::{Optimizer, Optimizer4D};
 use ndarray::{s, Array3, Array4};
 use rand_distr::{Distribution, Normal};
 use std::ops::{AddAssign, SubAssign};
 
-pub struct ConvLayer {
+pub struct Conv2D {
     input_size: (usize, usize, usize),
     kernel_size: usize,
     pub output_size: (usize, usize, usize),
@@ -15,7 +15,7 @@ pub struct ConvLayer {
     optimizer: Optimizer4D,
 }
 
-impl ConvLayer {
+impl Conv2D {
     pub fn zero(&mut self) {
         self.kernel_changes = Array4::<f32>::zeros((
             self.num_filters,
@@ -33,7 +33,7 @@ impl ConvLayer {
         stride: usize,
         num_filters: usize,
         optimizer_alg: Optimizer,
-    ) -> ConvLayer {
+    ) -> Conv2D {
         let output_width: usize = ((input_size.0 - kernel_size) / stride) + 1;
         let output_size = (output_width, output_width, num_filters);
         let mut kernels =
@@ -56,7 +56,7 @@ impl ConvLayer {
             (num_filters, kernel_size, kernel_size, input_size.2),
         );
 
-        let layer: ConvLayer = ConvLayer {
+        let layer: Conv2D = Conv2D {
             input_size,
             kernel_size,
             output_size,

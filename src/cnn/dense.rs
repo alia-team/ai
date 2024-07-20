@@ -5,7 +5,7 @@ use ndarray::{Array1, Array2};
 use rand::Rng;
 use rand_distr::{Distribution, Normal};
 
-pub struct DenseLayer {
+pub struct Dense {
     input_size: usize,
     pub output_size: usize,
     input: Array1<f32>,
@@ -21,7 +21,7 @@ pub struct DenseLayer {
     dropout_mask: Array1<f32>,
 }
 
-impl DenseLayer {
+impl Dense {
     pub fn zero(&mut self) {
         self.bias_changes = Array1::<f32>::zeros(self.output_size);
         self.weight_changes = Array2::<f32>::zeros((self.output_size, self.input_size));
@@ -36,7 +36,7 @@ impl DenseLayer {
         optimizer_alg: Optimizer,
         dropout: Option<f32>,
         transition_shape: (usize, usize, usize),
-    ) -> DenseLayer {
+    ) -> Dense {
         let thread_rng = &mut rand::thread_rng();
         let normal = Normal::new(0.0, (2.0 / input_size as f32).sqrt()).unwrap();
         // Use He initialisation by using a mean of 0.0 and a standard deviation of sqrt(2/input_neurons)
@@ -49,7 +49,7 @@ impl DenseLayer {
 
         let optimizer = Optimizer2D::new(optimizer_alg, input_size, output_size);
 
-        let layer: DenseLayer = DenseLayer {
+        let layer: Dense = Dense {
             input_size,
             output_size,
             input: Array1::<f32>::zeros(input_size),
