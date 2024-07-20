@@ -1,9 +1,10 @@
-use crate::cnn::activation::Activation;
-use crate::cnn::optimizer::{Optimizer, Optimizer2D};
-use crate::cnn::util::outer;
+use super::activation::Activation;
+use super::optimizer::{Optimizer, Optimizer2D};
+use super::util::outer;
+use super::weights_init::init_biases;
+use super::weights_init::{init_dense_weights, WeightsInit};
 use ndarray::{Array1, Array2};
 use rand::Rng;
-use rand_distr::{Distribution, Normal};
 
 pub struct Dense {
     input_size: usize,
@@ -36,16 +37,10 @@ impl Dense {
         optimizer_alg: Optimizer,
         dropout: Option<f32>,
         transition_shape: (usize, usize, usize),
+        weights_init: WeightsInit,
     ) -> Dense {
-        let thread_rng = &mut rand::thread_rng();
-        let normal = Normal::new(0.0, (2.0 / input_size as f32).sqrt()).unwrap();
-        // Use He initialisation by using a mean of 0.0 and a standard deviation of sqrt(2/input_neurons)
-        // Initialize the weights with random values drawn from the normal distribution
-        let weights =
-            Array2::<f32>::from_shape_fn((output_size, input_size), |_| normal.sample(thread_rng));
-
-        // Initialize the biases with a small positive value
-        let biases = Array1::<f32>::from_elem(output_size, 0.01);
+        let weights = init_dense_weights(weights_init, input_size, output_size);
+        let biases = init_biases(output_size);
 
         let optimizer = Optimizer2D::new(optimizer_alg, input_size, output_size);
 

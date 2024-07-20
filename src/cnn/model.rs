@@ -1,7 +1,8 @@
-use crate::cnn::activation::Activation;
-use crate::cnn::optimizer::Optimizer;
-use crate::cnn::util::*;
-use crate::cnn::{conv2d::Conv2D, dense::Dense, layer::LayerType, maxpool2d::MaxPool2D};
+use super::activation::Activation;
+use super::data::*;
+use super::optimizer::Optimizer;
+use super::weights_init::WeightsInit;
+use super::{conv2d::Conv2D, dense::Dense, layer::LayerType, maxpool2d::MaxPool2D};
 use core::panic;
 use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::{Array1, Array3};
@@ -40,7 +41,7 @@ pub struct CNN {
 
 impl CNN {
     pub fn new(data: TrainingData, params: Hyperparameters) -> CNN {
-        let creation_time = std::time::SystemTime::now();
+        let creation_time: SystemTime = SystemTime::now();
 
         let cnn: CNN = CNN {
             layers: vec![],
@@ -104,6 +105,7 @@ impl CNN {
         output_size: usize,
         activation: Box<dyn Activation>,
         dropout: Option<f32>,
+        weights_init: WeightsInit,
     ) {
         if self.input_shape.0 == 0 {
             panic!("Input shape not set, use cnn.set_input_shape()");
@@ -115,7 +117,7 @@ impl CNN {
             Some(LayerType::Dense(dense_layer)) => (dense_layer.output_size, 1, 1),
             None => self.input_shape,
         };
-        let input_size = transition_shape.0 * transition_shape.1 * transition_shape.2;
+        let input_size: usize = transition_shape.0 * transition_shape.1 * transition_shape.2;
         let fcl_layer: Dense = Dense::new(
             input_size,
             output_size,
@@ -123,6 +125,7 @@ impl CNN {
             self.optimizer,
             dropout,
             transition_shape,
+            weights_init,
         );
         self.layers.push(LayerType::Dense(fcl_layer));
         self.layer_order.push(String::from("dense"));
@@ -155,7 +158,8 @@ impl CNN {
             LayerType::Dense(dense_layer) => dense_layer.output_size,
             _ => panic!("Last layer is not a Dense"),
         };
-        let desired = Array1::<f32>::from_shape_fn(size, |i| (label == i) as usize as f32);
+        let desired: Array1<f32> =
+            Array1::<f32>::from_shape_fn(size, |i| (label == i) as usize as f32);
         self.output() - desired
     }
 
@@ -203,9 +207,9 @@ impl CNN {
     }
 
     pub fn get_accuracy(&self, label: usize) -> f32 {
-        let mut max = 0.0;
-        let mut max_idx = 0;
-        let output = self.output();
+        let mut max: f32 = 0.0;
+        let mut max_idx: usize = 0;
+        let output: Array1<f32> = self.output();
         for j in 0..output.len() {
             if output[j] > max {
                 max = output[j];
@@ -216,13 +220,14 @@ impl CNN {
         (max_idx == label) as usize as f32
     }
 
-    pub fn train(&mut self) {
+    pub fn fit(&mut self) {
         for epoch in 0..self.epochs {
-            let pb = ProgressBar::new((self.data.trn_size / self.minibatch_size) as u64);
-            pb.set_style(
+            let progress_bar: ProgressBar =
+                ProgressBar::new((self.data.trn_size / self.minibatch_size) as u64);
+            progress_bar.set_style(
                 ProgressStyle::default_bar()
                     .template(&format!(
-                        "Epoch {}: [{{bar}}] {{pos}}/{{len}} - acc: {{msg}}",
+                        "Epoch {}: [{{bar}}] {{pos}}/{{len}} - Accuracy: {{msg}}",
                         epoch
                     ))
                     .unwrap()
@@ -240,18 +245,17 @@ impl CNN {
 
                 if i % self.minibatch_size == self.minibatch_size - 1 {
                     self.update(self.minibatch_size);
-                    pb.inc(1);
-                    pb.set_message(format!("{:.1}%", avg_acc / (i + 1) as f32 * 100.0));
+                    progress_bar.inc(1);
+                    progress_bar.set_message(format!("{:.1}%", avg_acc / (i + 1) as f32 * 100.0));
                 }
             }
 
             avg_acc /= self.data.trn_size as f32;
-            pb.set_message(format!("{:.1}% - Testing...", avg_acc));
+            progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc));
 
             // Testing
             let mut avg_test_acc = 0.0;
             for _i in 0..self.data.tst_size {
-                // let image: Array3<f32> = self.data.tst_img[i].clone();
                 let (image, label) = get_random_test_image(&self.data);
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, false);
@@ -260,8 +264,8 @@ impl CNN {
             }
 
             avg_test_acc /= self.data.tst_size as f32;
-            pb.finish_with_message(format!(
-                "{:.1}% - Test: {:.1}%",
+            progress_bar.finish_with_message(format!(
+                "{:.1}% - Test accuracy: {:.1}%",
                 avg_acc * 100.0,
                 avg_test_acc * 100.0
             ));

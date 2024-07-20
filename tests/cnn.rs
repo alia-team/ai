@@ -1,7 +1,8 @@
 use ai::cnn::activation::{ReLU, Softmax};
+use ai::cnn::data::{TrainImage, TrainingData};
 use ai::cnn::model::*;
 use ai::cnn::optimizer::Optimizer;
-use ai::cnn::util::{TrainImage, TrainingData};
+use ai::cnn::weights_init::WeightsInit;
 use ndarray::Array3;
 use rust_mnist::Mnist;
 use std::collections::HashMap;
@@ -88,9 +89,9 @@ fn mnist() {
     cnn.set_input_shape(vec![28, 28, 3]);
     cnn.add_conv_layer(8, 3);
     cnn.add_mxpl_layer(2);
-    cnn.add_dense_layer(128, Box::new(ReLU), Some(0.25));
-    cnn.add_dense_layer(64, Box::new(ReLU), Some(0.25));
-    cnn.add_dense_layer(10, Box::new(Softmax), None);
+    cnn.add_dense_layer(128, Box::new(ReLU), Some(0.25), WeightsInit::He);
+    cnn.add_dense_layer(64, Box::new(ReLU), Some(0.25), WeightsInit::He);
+    cnn.add_dense_layer(10, Box::new(Softmax), None, WeightsInit::Xavier);
 
-    cnn.train();
+    cnn.fit();
 }

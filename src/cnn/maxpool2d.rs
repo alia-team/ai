@@ -1,5 +1,4 @@
 use ndarray::{Array3, Array4};
-use std::fmt::{Debug, Formatter};
 
 pub struct MaxPool2D {
     input_size: (usize, usize, usize),
@@ -7,28 +6,6 @@ pub struct MaxPool2D {
     pub output_size: (usize, usize, usize),
     highest_indices: Array4<usize>,
     stride: usize,
-}
-
-impl Debug for MaxPool2D {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        let mut s = String::new();
-        s.push_str("Max Pooling Layer\n");
-        s.push_str(&format!(
-            "Input Size: {}x{}x{}\n",
-            self.input_size.0, self.input_size.1, self.input_size.2
-        ));
-        s.push_str(&format!(
-            "Kernel Size: {}x{}\n",
-            self.kernel_size, self.kernel_size
-        ));
-        s.push_str(&format!(
-            "Output Size: {}x{}x{}\n",
-            self.output_size.0, self.output_size.1, self.output_size.2
-        ));
-        s.push_str(&format!("Stride: {}\n", self.stride));
-
-        write!(f, "{}", s)
-    }
 }
 
 impl MaxPool2D {
