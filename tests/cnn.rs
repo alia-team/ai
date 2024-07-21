@@ -23,8 +23,8 @@ fn alia() {
     println!("Building CNN...");
     let mut cnn: CNN = CNN::new(dataset, hyperparameters);
     cnn.set_input_shape(vec![100, 100, 3]);
-    cnn.add_conv_layer(8, 3);
-    cnn.add_mxpl_layer(2);
+    cnn.add_conv2d_layer(8, 3);
+    cnn.add_maxpool2d_layer(2);
     cnn.add_dense_layer(128, Box::new(ReLU), Some(0.25), WeightsInit::He);
     cnn.add_dense_layer(64, Box::new(ReLU), Some(0.25), WeightsInit::He);
     cnn.add_dense_layer(10, Box::new(Softmax), None, WeightsInit::Xavier);

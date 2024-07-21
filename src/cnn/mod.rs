@@ -1,10 +1,10 @@
 pub mod activation;
-pub mod weights_init;
-pub mod data;
 pub mod conv2d;
+pub mod data;
 pub mod dense;
 pub mod layer;
 pub mod maxpool2d;
 pub mod model;
 pub mod optimizer;
 pub mod util;
+pub mod weights_init;

@@ -1,15 +1,14 @@
 use ndarray::{Array1, Array2, Array4};
 
-// Enum representing different optimization algorithms
 #[derive(Clone, Copy)]
 pub enum Optimizer {
-    SGD(f32),            // Stochastic Gradient Descent with learning rate
-    Momentum(f32, f32),  // Momentum with learning rate and momentum factor
-    RMSProp(f32, f32),   // RMSProp with learning rate and decay rate
-    Adam(f32, f32, f32), // Adam with learning rate, beta1, and beta2
+    SGD(f32),            // Learning rate
+    Momentum(f32, f32),  // Learning rate & momentum factor
+    RMSProp(f32, f32),   // Learning rate & decay rate
+    Adam(f32, f32, f32), // Learning rate, beta1 & beta2
 }
 
-// Optimizer for 2D parameters (e.g., fully connected layer weights)
+// Optimizer struct for dense layer
 pub struct Optimizer2D {
     pub alg: Optimizer,
     pub momentum1: Array2<f32>, // First moment for Adam, velocity for Momentum
@@ -20,7 +19,6 @@ pub struct Optimizer2D {
 }
 
 impl Optimizer2D {
-    // Create a new Optimizer2D instance
     pub fn new(alg: Optimizer, input_size: usize, output_size: usize) -> Optimizer2D {
         let momentum1 = Array2::<f32>::zeros((output_size, input_size));
         let momentum2 = Array2::<f32>::zeros((output_size, input_size));
@@ -102,7 +100,7 @@ impl Optimizer2D {
     }
 }
 
-// Optimizer for 4D parameters (e.g., convolutional layer weights)
+// Optimizer struct for convolutional layer
 pub struct Optimizer4D {
     pub alg: Optimizer,
     pub momentum1: Array4<f32>, // First moment for Adam, velocity for Momentum
@@ -113,13 +111,12 @@ pub struct Optimizer4D {
 }
 
 impl Optimizer4D {
-    // Create a new Optimizer4D instance
     pub fn new(alg: Optimizer, size: (usize, usize, usize, usize)) -> Optimizer4D {
-        let momentum1 = Array4::<f32>::zeros(size);
-        let momentum2 = Array4::<f32>::zeros(size);
-        let t = 0;
-        let beta1_done = false;
-        let beta2_done = false;
+        let momentum1: Array4<f32> = Array4::<f32>::zeros(size);
+        let momentum2: Array4<f32> = Array4::<f32>::zeros(size);
+        let t: i32 = 0;
+        let beta1_done: bool = false;
+        let beta2_done: bool = false;
 
         Optimizer4D {
             alg,

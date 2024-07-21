@@ -3,7 +3,7 @@ use crate::cnn::dense::Dense;
 use crate::cnn::maxpool2d::MaxPool2D;
 
 pub enum LayerType {
-    Conv(Conv2D),
-    Mxpl(MaxPool2D),
+    Conv2D(Conv2D),
+    MaxPool2D(MaxPool2D),
     Dense(Dense),
 }
