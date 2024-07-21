@@ -228,7 +228,7 @@ impl CNN {
                 ProgressStyle::default_bar()
                     .template(&format!(
                         "Epoch {}: [{{bar}}] {{pos}}/{{len}} - Accuracy: {{msg}}",
-                        epoch
+                        epoch + 1
                     ))
                     .unwrap()
                     .progress_chars("#-"),
@@ -236,7 +236,7 @@ impl CNN {
 
             let mut avg_acc = 0.0;
             for i in 0..self.data.trn_size {
-                let (image, label) = get_random_image(&self.data);
+                let (image, label) = self.data.get_random_image().unwrap();
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, true);
                 self.backward(label, true);
@@ -251,12 +251,12 @@ impl CNN {
             }
 
             avg_acc /= self.data.trn_size as f32;
-            progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc));
+            progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc * 100.0));
 
             // Testing
             let mut avg_test_acc = 0.0;
             for _i in 0..self.data.tst_size {
-                let (image, label) = get_random_test_image(&self.data);
+                let (image, label) = self.data.get_random_test_image().unwrap();
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, false);
 
