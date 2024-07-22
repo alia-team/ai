@@ -5,6 +5,8 @@ use ai::cnn::optimizer::Optimizer;
 use ai::cnn::weights_init::WeightsInit;
 use ndarray::{array, Array1};
 
+// WARNING: Comment the alia test case before push: the repo doesn't contain the required dataset.
+/*
 #[test]
 fn alia() {
     println!("Loading dataset...");
@@ -35,6 +37,7 @@ fn alia() {
     cnn.fit();
     println!("Fitting done.");
 }
+*/
 
 #[test]
 fn xor() {
