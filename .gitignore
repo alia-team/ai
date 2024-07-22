@@ -9,5 +9,5 @@ target
 .vscode
 
 Cargo.lock
-datatest/
+dataset/
 test_images/
