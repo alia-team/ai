@@ -25,6 +25,185 @@ impl Default for Hyperparameters {
     }
 }
 
+pub struct MLP {
+    layers: Vec<Dense>,
+    layer_order: Vec<String>,
+    data: Dataset1D,
+    minibatch_size: usize,
+    creation_time: SystemTime,
+    training_history: Vec<f32>,
+    testing_history: Vec<f32>,
+    time_history: Vec<usize>,
+    optimizer: Optimizer,
+    epochs: usize,
+    input_size: usize,
+}
+
+impl MLP {
+    pub fn new(data: Dataset1D, input_size: usize, params: Hyperparameters) -> Self {
+        let creation_time: SystemTime = SystemTime::now();
+
+        let mlp: MLP = MLP {
+            layers: vec![],
+            layer_order: vec![],
+            data,
+            minibatch_size: params.batch_size,
+            creation_time,
+            training_history: vec![],
+            testing_history: vec![],
+            time_history: vec![],
+            optimizer: params.optimizer,
+            epochs: params.epochs,
+            input_size,
+        };
+
+        mlp
+    }
+
+    pub fn add_layer(
+        &mut self,
+        output_size: usize,
+        activation: Box<dyn Activation>,
+        dropout: Option<f32>,
+        weights_init: WeightsInit,
+    ) {
+        // Find last layer's output size
+        let input_size: usize = match self.layers.last() {
+            Some(layer) => layer.output_size,
+            None => self.input_size,
+        };
+
+        let layer: Dense = Dense::new(
+            input_size,
+            output_size,
+            activation,
+            self.optimizer,
+            dropout,
+            (input_size, 1, 1),
+            weights_init,
+        );
+        self.layers.push(layer);
+        self.layer_order.push(String::from("dense"));
+    }
+
+    pub fn forward(&mut self, image: Array1<f32>, training: bool) -> Array1<f32> {
+        let mut output: Array1<f32> = image;
+        for layer in &mut self.layers {
+            output = layer.forward(output, training);
+        }
+
+        output
+    }
+
+    pub fn last_layer_error(&mut self, label: u8) -> Array1<f32> {
+        let size: usize = self.layers.last().unwrap().output_size;
+        let desired: Array1<f32> =
+            Array1::<f32>::from_shape_fn(size, |i| (label == i as u8) as usize as f32);
+        self.output() - desired
+    }
+
+    pub fn backward(&mut self, label: u8, training: bool) {
+        let mut error: Array1<f32> = self.last_layer_error(label);
+        for layer in self.layers.iter_mut().rev() {
+            error = layer.backward(error, training);
+        }
+    }
+
+    pub fn update(&mut self, minibatch_size: usize) {
+        for layer in &mut self.layers {
+            layer.update(minibatch_size);
+        }
+    }
+
+    pub fn output(&self) -> Array1<f32> {
+        self.layers.last().unwrap().output.clone()
+    }
+
+    pub fn get_accuracy(&self, label: u8) -> f32 {
+        let mut max: f32 = f32::NEG_INFINITY;
+        let mut max_idx: u8 = 0;
+        let output: Array1<f32> = self.output();
+
+        for (j, &value) in output.iter().enumerate() {
+            if value > max {
+                max = value;
+                max_idx = j as u8;
+            }
+        }
+
+        (max_idx == label) as u8 as f32
+    }
+
+    pub fn fit(&mut self) {
+        for epoch in 0..self.epochs {
+            let progress_bar: ProgressBar =
+                ProgressBar::new((self.data.training_size / self.minibatch_size) as u64);
+            progress_bar.set_style(
+                ProgressStyle::default_bar()
+                    .template(&format!(
+                        "Epoch {}: [{{bar}}] {{pos}}/{{len}} - Accuracy: {{msg}}",
+                        epoch + 1
+                    ))
+                    .unwrap()
+                    .progress_chars("#-"),
+            );
+
+            let mut avg_acc = 0.0;
+            for i in 0..self.data.training_size {
+                let (sample, label) = self.data.get_random_training_sample().unwrap();
+                let label = *self.data.classes.get(&label).unwrap();
+                self.forward(sample, true);
+                self.backward(label, true);
+
+                avg_acc += self.get_accuracy(label);
+
+                if i % self.minibatch_size == self.minibatch_size - 1 {
+                    self.update(self.minibatch_size);
+                    progress_bar.inc(1);
+                    progress_bar.set_message(format!("{:.1}%", avg_acc / (i + 1) as f32 * 100.0));
+                }
+            }
+
+            avg_acc /= self.data.training_size as f32;
+            if self.data.testing_size == 0 {
+                progress_bar.finish_with_message(format!("{:.1}%", avg_acc * 100.0));
+            } else {
+                progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc * 100.0));
+
+                // Testing
+                let mut avg_test_acc = 0.0;
+                for _i in 0..self.data.testing_size {
+                    let (image, label) = self.data.get_random_testing_sample().unwrap();
+                    let label = *self.data.classes.get(&label).unwrap();
+                    self.forward(image, false);
+
+                    avg_test_acc += self.get_accuracy(label);
+                }
+
+                avg_test_acc /= self.data.testing_size as f32;
+                progress_bar.finish_with_message(format!(
+                    "{:.1}% - Test accuracy: {:.1}%",
+                    avg_acc * 100.0,
+                    avg_test_acc * 100.0
+                ));
+                self.testing_history.push(avg_test_acc);
+            }
+
+            self.training_history.push(avg_acc);
+            let duration = SystemTime::now()
+                .duration_since(self.creation_time)
+                .unwrap();
+            self.time_history.push(duration.as_secs() as usize);
+        }
+    }
+
+    pub fn zero(&mut self) {
+        for layer in &mut self.layers {
+            layer.zero();
+        }
+    }
+}
+
 pub struct CNN {
     layers: Vec<LayerType>,
     layer_order: Vec<String>,
@@ -217,13 +396,13 @@ impl CNN {
             }
         }
 
-        (max_idx == label) as usize as f32
+        (max_idx == label) as u8 as f32
     }
 
     pub fn fit(&mut self) {
         for epoch in 0..self.epochs {
             let progress_bar: ProgressBar =
-                ProgressBar::new((self.data.trn_size / self.minibatch_size) as u64);
+                ProgressBar::new((self.data.training_size / self.minibatch_size) as u64);
             progress_bar.set_style(
                 ProgressStyle::default_bar()
                     .template(&format!(
@@ -235,7 +414,7 @@ impl CNN {
             );
 
             let mut avg_acc = 0.0;
-            for i in 0..self.data.trn_size {
+            for i in 0..self.data.training_size {
                 let (image, label) = self.data.get_random_sample().unwrap();
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, true);
@@ -250,12 +429,12 @@ impl CNN {
                 }
             }
 
-            avg_acc /= self.data.trn_size as f32;
+            avg_acc /= self.data.training_size as f32;
             progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc * 100.0));
 
             // Testing
             let mut avg_test_acc = 0.0;
-            for _i in 0..self.data.tst_size {
+            for _i in 0..self.data.testing_size {
                 let (image, label) = self.data.get_random_test_sample().unwrap();
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, false);
@@ -263,7 +442,7 @@ impl CNN {
                 avg_test_acc += self.get_accuracy(label);
             }
 
-            avg_test_acc /= self.data.tst_size as f32;
+            avg_test_acc /= self.data.testing_size as f32;
             progress_bar.finish_with_message(format!(
                 "{:.1}% - Test accuracy: {:.1}%",
                 avg_acc * 100.0,

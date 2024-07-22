@@ -1,60 +1,125 @@
 use image::io::Reader as ImageReader;
-use ndarray::{Array2, Array3};
+use itertools::Itertools;
+use ndarray::{Array1, Array3};
 use rand::prelude::*;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-pub enum DatasetType {
-    Dataset2D(Dataset2D),
-    Dataset3D(Dataset3D),
+pub trait Dataset {
+    type Array;
+    fn get_random_training_sample(&self) -> Result<(Self::Array, u8), String>;
+    fn get_random_testing_sample(&self) -> Result<(Self::Array, u8), String>;
 }
 
-pub struct Dataset2D {
-    trn_smpl: Vec<Array2<f32>>,
-    trn_lbl: Vec<usize>,
-    tst_smpl: Vec<Array2<f32>>,
-    tst_lbl: Vec<usize>,
-    pub trn_size: usize,
-    pub tst_size: usize,
-    pub classes: HashMap<usize, usize>,
+pub struct Dataset1D {
+    training_samples: Vec<Array1<f32>>,
+    training_targets: Vec<u8>,
+    testing_samples: Vec<Array1<f32>>,
+    testing_targets: Vec<u8>,
+    pub training_size: usize,
+    pub testing_size: usize,
+    pub classes: HashMap<u8, u8>,
 }
 
-impl Dataset2D {
-    pub fn get_random_sample(&self) -> Result<(Array2<f32>, usize), String> {
+impl Dataset1D {
+    pub fn new(
+        samples: Vec<Array1<f32>>,
+        targets: Vec<u8>,
+        train_ratio: f32,
+        max_samples_per_class: Option<u8>,
+    ) -> Self {
+        let mut training_samples: Vec<Array1<f32>> = Vec::new();
+        let mut training_targets: Vec<u8> = Vec::new();
+        let mut testing_samples: Vec<Array1<f32>> = Vec::new();
+        let mut testing_targets: Vec<u8> = Vec::new();
+        let mut classes: HashMap<u8, u8> = HashMap::new();
+
+        let num_samples = max_samples_per_class.unwrap_or(samples.len() as u8);
+        let num_training_samples = (num_samples as f32 * train_ratio).round() as usize;
+
+        for (i, sample) in samples.into_iter().take(num_samples as usize).enumerate() {
+            if i < num_training_samples {
+                training_samples.push(sample);
+                training_targets.push(targets[i]);
+            } else {
+                testing_samples.push(sample);
+                testing_targets.push(targets[i]);
+            }
+        }
+
+        let training_size: usize = training_samples.len();
+        let testing_size: usize = testing_samples.len();
+
+        // Build classes hashmap
+        let mut sorted_unique_targets: Vec<u8> = targets.clone();
+        sorted_unique_targets.sort();
+        sorted_unique_targets = sorted_unique_targets.into_iter().unique().collect();
+        for target in sorted_unique_targets {
+            classes.insert(target, target);
+        }
+
+        Dataset1D {
+            training_samples,
+            training_targets,
+            testing_samples,
+            testing_targets,
+            training_size,
+            testing_size,
+            classes,
+        }
+    }
+}
+
+impl Dataset for Dataset1D {
+    type Array = Array1<f32>;
+
+    fn get_random_training_sample(&self) -> Result<(Self::Array, u8), String> {
         let mut rng = thread_rng();
-        let index = rng.gen_range(0..self.trn_size);
-        Ok((self.trn_smpl[index].to_owned(), self.trn_lbl[index]))
+        let index = rng.gen_range(0..self.training_size);
+        Ok((
+            self.training_samples[index].to_owned(),
+            self.training_targets[index],
+        ))
     }
 
-    pub fn get_random_test_sample(&self) -> Result<(Array2<f32>, usize), String> {
+    fn get_random_testing_sample(&self) -> Result<(Self::Array, u8), String> {
         let mut rng = thread_rng();
-        let index = rng.gen_range(0..self.tst_size);
-        Ok((self.tst_smpl[index].to_owned(), self.tst_lbl[index]))
+        let index = rng.gen_range(0..self.testing_size);
+        Ok((
+            self.testing_samples[index].to_owned(),
+            self.testing_targets[index],
+        ))
     }
 }
 
 pub struct Dataset3D {
-    trn_smpl: Vec<Array3<f32>>,
-    trn_lbl: Vec<usize>,
-    tst_smpl: Vec<Array3<f32>>,
-    tst_lbl: Vec<usize>,
-    pub trn_size: usize,
-    pub tst_size: usize,
+    training_samples: Vec<Array3<f32>>,
+    training_targets: Vec<usize>,
+    testing_samples: Vec<Array3<f32>>,
+    testing_targets: Vec<usize>,
+    pub training_size: usize,
+    pub testing_size: usize,
     pub classes: HashMap<usize, usize>,
 }
 
 impl Dataset3D {
     pub fn get_random_sample(&self) -> Result<(Array3<f32>, usize), String> {
         let mut rng = thread_rng();
-        let index = rng.gen_range(0..self.trn_size);
-        Ok((self.trn_smpl[index].to_owned(), self.trn_lbl[index]))
+        let index = rng.gen_range(0..self.training_size);
+        Ok((
+            self.training_samples[index].to_owned(),
+            self.training_targets[index],
+        ))
     }
 
     pub fn get_random_test_sample(&self) -> Result<(Array3<f32>, usize), String> {
         let mut rng = thread_rng();
-        let index = rng.gen_range(0..self.tst_size);
-        Ok((self.tst_smpl[index].to_owned(), self.tst_lbl[index]))
+        let index = rng.gen_range(0..self.testing_size);
+        Ok((
+            self.testing_samples[index].to_owned(),
+            self.testing_targets[index],
+        ))
     }
 }
 
@@ -67,10 +132,10 @@ where
     T: AsRef<Path>,
 {
     let dataset_path = dataset_path.as_ref();
-    let mut trn_smpl = Vec::new();
-    let mut trn_lbl = Vec::new();
-    let mut tst_smpl = Vec::new();
-    let mut tst_lbl = Vec::new();
+    let mut training_samples = Vec::new();
+    let mut training_targets = Vec::new();
+    let mut testing_samples = Vec::new();
+    let mut testing_targets = Vec::new();
     let mut classes = HashMap::new();
 
     let mut class_dirs: Vec<_> = fs::read_dir(dataset_path)
@@ -113,25 +178,25 @@ where
 
         for (i, img_path) in images.into_iter().take(num_images).enumerate() {
             if i < num_train {
-                trn_smpl.push(load_image(&img_path).expect("Training image not found."));
-                trn_lbl.push(class_index);
+                training_samples.push(load_image(&img_path).expect("Training image not found."));
+                training_targets.push(class_index);
             } else {
-                tst_smpl.push(load_image(&img_path).expect("Test image not found."));
-                tst_lbl.push(class_index);
+                testing_samples.push(load_image(&img_path).expect("Test image not found."));
+                testing_targets.push(class_index);
             }
         }
     }
 
-    let trn_size = trn_smpl.len();
-    let tst_size = tst_smpl.len();
+    let training_size = training_samples.len();
+    let testing_size = testing_samples.len();
 
     Ok(Dataset3D {
-        trn_smpl,
-        trn_lbl,
-        tst_smpl,
-        tst_lbl,
-        trn_size,
-        tst_size,
+        training_samples,
+        training_targets,
+        testing_samples,
+        testing_targets,
+        training_size,
+        testing_size,
         classes,
     })
 }
