@@ -1,33 +1,60 @@
 use image::io::Reader as ImageReader;
-use ndarray::Array3;
+use ndarray::{Array2, Array3};
 use rand::prelude::*;
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
 
-pub struct TrainingData {
-    trn_img: Vec<Array3<f32>>,
+pub enum DatasetType {
+    Dataset2D(Dataset2D),
+    Dataset3D(Dataset3D),
+}
+
+pub struct Dataset2D {
+    trn_smpl: Vec<Array2<f32>>,
     trn_lbl: Vec<usize>,
-    tst_img: Vec<Array3<f32>>,
+    tst_smpl: Vec<Array2<f32>>,
     tst_lbl: Vec<usize>,
     pub trn_size: usize,
     pub tst_size: usize,
     pub classes: HashMap<usize, usize>,
 }
 
-impl TrainingData {
-    pub fn get_random_image(&self) -> Result<(Array3<f32>, usize), String> {
+impl Dataset2D {
+    pub fn get_random_sample(&self) -> Result<(Array2<f32>, usize), String> {
         let mut rng = thread_rng();
         let index = rng.gen_range(0..self.trn_size);
-        let img = self.trn_img[index].to_owned();
-        Ok((img, self.trn_lbl[index]))
+        Ok((self.trn_smpl[index].to_owned(), self.trn_lbl[index]))
     }
 
-    pub fn get_random_test_image(&self) -> Result<(Array3<f32>, usize), String> {
+    pub fn get_random_test_sample(&self) -> Result<(Array2<f32>, usize), String> {
         let mut rng = thread_rng();
         let index = rng.gen_range(0..self.tst_size);
-        let img = self.tst_img[index].to_owned();
-        Ok((img, self.tst_lbl[index]))
+        Ok((self.tst_smpl[index].to_owned(), self.tst_lbl[index]))
+    }
+}
+
+pub struct Dataset3D {
+    trn_smpl: Vec<Array3<f32>>,
+    trn_lbl: Vec<usize>,
+    tst_smpl: Vec<Array3<f32>>,
+    tst_lbl: Vec<usize>,
+    pub trn_size: usize,
+    pub tst_size: usize,
+    pub classes: HashMap<usize, usize>,
+}
+
+impl Dataset3D {
+    pub fn get_random_sample(&self) -> Result<(Array3<f32>, usize), String> {
+        let mut rng = thread_rng();
+        let index = rng.gen_range(0..self.trn_size);
+        Ok((self.trn_smpl[index].to_owned(), self.trn_lbl[index]))
+    }
+
+    pub fn get_random_test_sample(&self) -> Result<(Array3<f32>, usize), String> {
+        let mut rng = thread_rng();
+        let index = rng.gen_range(0..self.tst_size);
+        Ok((self.tst_smpl[index].to_owned(), self.tst_lbl[index]))
     }
 }
 
@@ -35,14 +62,14 @@ pub fn load_image_dataset<T>(
     dataset_path: T,
     train_ratio: f32,
     max_images_per_class: Option<usize>,
-) -> Result<TrainingData, String>
+) -> Result<Dataset3D, String>
 where
     T: AsRef<Path>,
 {
     let dataset_path = dataset_path.as_ref();
-    let mut trn_img = Vec::new();
+    let mut trn_smpl = Vec::new();
     let mut trn_lbl = Vec::new();
-    let mut tst_img = Vec::new();
+    let mut tst_smpl = Vec::new();
     let mut tst_lbl = Vec::new();
     let mut classes = HashMap::new();
 
@@ -86,22 +113,22 @@ where
 
         for (i, img_path) in images.into_iter().take(num_images).enumerate() {
             if i < num_train {
-                trn_img.push(load_image(&img_path).expect("Training image not found."));
+                trn_smpl.push(load_image(&img_path).expect("Training image not found."));
                 trn_lbl.push(class_index);
             } else {
-                tst_img.push(load_image(&img_path).expect("Test image not found."));
+                tst_smpl.push(load_image(&img_path).expect("Test image not found."));
                 tst_lbl.push(class_index);
             }
         }
     }
 
-    let trn_size = trn_img.len();
-    let tst_size = tst_img.len();
+    let trn_size = trn_smpl.len();
+    let tst_size = tst_smpl.len();
 
-    Ok(TrainingData {
-        trn_img,
+    Ok(Dataset3D {
+        trn_smpl,
         trn_lbl,
-        tst_img,
+        tst_smpl,
         tst_lbl,
         trn_size,
         tst_size,

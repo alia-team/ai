@@ -1,5 +1,5 @@
 use ai::cnn::activation::{ReLU, Softmax};
-use ai::cnn::data::{load_image_dataset, TrainingData};
+use ai::cnn::data::{load_image_dataset, Dataset3D};
 use ai::cnn::model::*;
 use ai::cnn::optimizer::Optimizer;
 use ai::cnn::weights_init::WeightsInit;
@@ -7,7 +7,7 @@ use ai::cnn::weights_init::WeightsInit;
 #[test]
 fn alia() {
     println!("Loading dataset...");
-    let dataset: TrainingData =
+    let dataset: Dataset3D =
         load_image_dataset("./dataset/", 0.8, Some(100)).expect("Failed to load image dataset.");
     println!(
         "Loaded {} training images and {} testing images.",

@@ -28,7 +28,7 @@ impl Default for Hyperparameters {
 pub struct CNN {
     layers: Vec<LayerType>,
     layer_order: Vec<String>,
-    data: TrainingData,
+    data: Dataset3D,
     minibatch_size: usize,
     creation_time: SystemTime,
     training_history: Vec<f32>,
@@ -40,7 +40,7 @@ pub struct CNN {
 }
 
 impl CNN {
-    pub fn new(data: TrainingData, params: Hyperparameters) -> CNN {
+    pub fn new(data: Dataset3D, params: Hyperparameters) -> CNN {
         let creation_time: SystemTime = SystemTime::now();
 
         let cnn: CNN = CNN {
@@ -236,7 +236,7 @@ impl CNN {
 
             let mut avg_acc = 0.0;
             for i in 0..self.data.trn_size {
-                let (image, label) = self.data.get_random_image().unwrap();
+                let (image, label) = self.data.get_random_sample().unwrap();
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, true);
                 self.backward(label, true);
@@ -256,7 +256,7 @@ impl CNN {
             // Testing
             let mut avg_test_acc = 0.0;
             for _i in 0..self.data.tst_size {
-                let (image, label) = self.data.get_random_test_image().unwrap();
+                let (image, label) = self.data.get_random_test_sample().unwrap();
                 let label = *self.data.classes.get(&label).unwrap();
                 self.forward(image, false);
 
