@@ -141,7 +141,7 @@ impl MLP {
             progress_bar.set_style(
                 ProgressStyle::default_bar()
                     .template(&format!(
-                        "Epoch {}: [{{bar}}] {{pos}}/{{len}} - Accuracy: {{msg}}",
+                        "Epoch {}: [{{bar}}] Batch {{pos}}/{{len}} - Accuracy: {{msg}}",
                         epoch + 1
                     ))
                     .unwrap()
@@ -406,7 +406,7 @@ impl CNN {
             progress_bar.set_style(
                 ProgressStyle::default_bar()
                     .template(&format!(
-                        "Epoch {}: [{{bar}}] {{pos}}/{{len}} - Accuracy: {{msg}}",
+                        "Epoch {}: [{{bar}}] Batch {{pos}}/{{len}} - Accuracy: {{msg}}",
                         epoch + 1
                     ))
                     .unwrap()
