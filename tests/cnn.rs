@@ -1,8 +1,8 @@
-use ai::cnn::activation::*;
-use ai::cnn::data::{load_image, load_image_dataset, Dataset1D, Dataset3D};
-use ai::cnn::model::*;
-use ai::cnn::optimizer::Optimizer;
-use ai::cnn::weights_init::WeightsInit;
+use ai::activation::*;
+use ai::data::{load_image, load_image_dataset, Dataset1D, Dataset3D};
+use ai::model::*;
+use ai::optimizer::Optimizer;
+use ai::weights_init::WeightsInit;
 use ndarray::{array, Array1, Array3};
 use std::path::Path;
 
@@ -49,8 +49,8 @@ fn alia() {
     println!("Model loaded.");
     println!("Predicting... It should predicts a Phidippus.");
     let image_path: &str = "dataset/phidippus/835255150-388.png";
-    let input: Array3<f32> = load_image(&Path::new(image_path)).expect("Image not found.");
-    let output: Array1<f32> = loaded_model.predict(input);
+    let input: Array3<f64> = load_image(&Path::new(image_path)).expect("Image not found.");
+    let output: Array1<f64> = loaded_model.predict(input);
 
     // Get predicted class name
     let max_output: usize = output
@@ -73,14 +73,14 @@ fn alia() {
 #[test]
 fn xor() {
     println!("Loading dataset...");
-    let samples: Vec<Array1<f32>> = vec![
+    let samples: Vec<Array1<f64>> = vec![
         array![0., 0.],
         array![0., 1.],
         array![1., 0.],
         array![1., 1.],
     ];
     let targets: Vec<u8> = vec![0, 1, 1, 0];
-    let training_ratio: f32 = 1.;
+    let training_ratio: f64 = 1.;
     let max_samples_per_class: Option<u8> = None;
     let dataset: Dataset1D =
         Dataset1D::new(samples, targets, training_ratio, max_samples_per_class);
