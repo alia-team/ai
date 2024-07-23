@@ -8,6 +8,7 @@ use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::{Array1, Array3};
 use serde::{Deserialize, Serialize};
 use std::default::Default;
+use std::fs::File;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct Hyperparameters {
@@ -88,13 +89,17 @@ impl MLP {
         self.layer_order.push(String::from("dense"));
     }
 
-    pub fn forward(&mut self, image: Array1<f32>, training: bool) -> Array1<f32> {
-        let mut output: Array1<f32> = image;
+    pub fn forward(&mut self, input: Array1<f32>, training: bool) -> Array1<f32> {
+        let mut output: Array1<f32> = input;
         for layer in &mut self.layers {
             output = layer.forward(output, training);
         }
 
         output
+    }
+
+    pub fn predict(&mut self, input: Array1<f32>) -> Array1<f32> {
+        self.forward(input, false)
     }
 
     pub fn last_layer_error(&mut self, label: u8) -> Array1<f32> {
@@ -205,7 +210,7 @@ impl MLP {
         }
     }
 
-    pub fn save(&self, path: &String, model_name: &String) -> String {
+    pub fn save(&self, path: &str, model_name: &str) -> String {
         let timestamp: u128 = self
             .creation_time
             .duration_since(UNIX_EPOCH)
@@ -217,6 +222,13 @@ impl MLP {
         serde_json::to_writer(model_file, &self).unwrap();
 
         full_path
+    }
+
+    pub fn load(model_file_name: &str) -> MLP {
+        let model_file = File::open(model_file_name).unwrap();
+        let model: MLP = serde_json::from_reader(model_file).unwrap();
+
+        model
     }
 }
 
@@ -347,6 +359,10 @@ impl CNN {
         }
 
         flat_output
+    }
+
+    pub fn predict(&mut self, input: Array3<f32>) -> Array1<f32> {
+        self.forward(input, false)
     }
 
     pub fn last_layer_error(&mut self, label: usize) -> Array1<f32> {
@@ -485,7 +501,7 @@ impl CNN {
         }
     }
 
-    pub fn save(&self, path: &String, model_name: &String) -> String {
+    pub fn save(&self, path: &str, model_name: &str) -> String {
         let timestamp: u128 = self
             .creation_time
             .duration_since(UNIX_EPOCH)
@@ -497,5 +513,12 @@ impl CNN {
         serde_json::to_writer(model_file, &self).unwrap();
 
         full_path
+    }
+
+    pub fn load(model_file_name: &str) -> CNN {
+        let model_file = File::open(model_file_name).unwrap();
+        let model: CNN = serde_json::from_reader(model_file).unwrap();
+
+        model
     }
 }
