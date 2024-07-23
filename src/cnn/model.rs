@@ -6,8 +6,9 @@ use super::{conv2d::Conv2D, dense::Dense, layer::LayerType, maxpool2d::MaxPool2D
 use core::panic;
 use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::{Array1, Array3};
+use serde::{Deserialize, Serialize};
 use std::default::Default;
-use std::time::SystemTime;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct Hyperparameters {
     pub batch_size: usize,
@@ -25,6 +26,7 @@ impl Default for Hyperparameters {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct MLP {
     layers: Vec<Dense>,
     layer_order: Vec<String>,
@@ -202,8 +204,23 @@ impl MLP {
             layer.zero();
         }
     }
+
+    pub fn save(&self, path: &String, model_name: &String) -> String {
+        let timestamp: u128 = self
+            .creation_time
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        let full_path: String = format!("{}{}_{}.json", path, model_name, timestamp);
+        let model_file = std::fs::File::create(full_path.clone()).unwrap();
+        serde_json::to_writer(model_file, &self).unwrap();
+
+        full_path
+    }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct CNN {
     layers: Vec<LayerType>,
     layer_order: Vec<String>,
@@ -466,5 +483,19 @@ impl CNN {
                 LayerType::Dense(dense_layer) => dense_layer.zero(),
             }
         }
+    }
+
+    pub fn save(&self, path: &String, model_name: &String) -> String {
+        let timestamp: u128 = self
+            .creation_time
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        let full_path: String = format!("{}{}_{}.json", path, model_name, timestamp);
+        let model_file = std::fs::File::create(full_path.clone()).unwrap();
+        serde_json::to_writer(model_file, &self).unwrap();
+
+        full_path
     }
 }

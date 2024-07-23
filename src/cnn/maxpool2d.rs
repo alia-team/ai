@@ -1,5 +1,7 @@
 use ndarray::{Array3, Array4};
+use serde::{Deserialize, Serialize};
 
+#[derive(Deserialize, Serialize)]
 pub struct MaxPool2D {
     input_size: (usize, usize, usize),
     kernel_size: usize,

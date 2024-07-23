@@ -6,7 +6,6 @@ use ai::cnn::weights_init::WeightsInit;
 use ndarray::{array, Array1};
 
 // WARNING: Comment the alia test case before push: the repo doesn't contain the required dataset.
-/*
 #[test]
 fn alia() {
     println!("Loading dataset...");
@@ -36,8 +35,13 @@ fn alia() {
     println!("Fitting...");
     cnn.fit();
     println!("Fitting done.");
+
+    println!("Saving model...");
+    let path: String = String::from("./models/");
+    let model_name: String = String::from("cnn");
+    let full_path: String = cnn.save(&path, &model_name);
+    println!("Model saved to {}.", full_path);
 }
-*/
 
 #[test]
 fn xor() {

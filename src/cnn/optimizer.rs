@@ -1,6 +1,7 @@
 use ndarray::{Array1, Array2, Array4};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone, Copy)]
+#[derive(Deserialize, Serialize, Clone, Copy)]
 pub enum Optimizer {
     SGD(f32),            // Learning rate
     Momentum(f32, f32),  // Learning rate & momentum factor
@@ -9,6 +10,7 @@ pub enum Optimizer {
 }
 
 // Optimizer struct for dense layer
+#[derive(Serialize, Deserialize)]
 pub struct Optimizer2D {
     pub alg: Optimizer,
     pub momentum1: Array2<f32>, // First moment for Adam, velocity for Momentum
@@ -101,6 +103,7 @@ impl Optimizer2D {
 }
 
 // Optimizer struct for convolutional layer
+#[derive(Serialize, Deserialize)]
 pub struct Optimizer4D {
     pub alg: Optimizer,
     pub momentum1: Array4<f32>, // First moment for Adam, velocity for Momentum

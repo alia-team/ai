@@ -2,6 +2,7 @@ use image::io::Reader as ImageReader;
 use itertools::Itertools;
 use ndarray::{Array1, Array3};
 use rand::prelude::*;
+use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::fs;
 use std::path::Path;
@@ -12,6 +13,7 @@ pub trait Dataset {
     fn get_random_testing_sample(&self) -> Result<(Self::Array, u8), String>;
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Dataset1D {
     training_samples: Vec<Array1<f32>>,
     training_targets: Vec<u8>,
@@ -93,6 +95,7 @@ impl Dataset for Dataset1D {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct Dataset3D {
     training_samples: Vec<Array3<f32>>,
     training_targets: Vec<usize>,
