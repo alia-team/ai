@@ -517,8 +517,8 @@ impl CNN {
         full_path
     }
 
-    pub fn load(model_file_name: &str) -> CNN {
-        let model_file = File::open(model_file_name).unwrap();
+    pub fn load(model_path: &str) -> CNN {
+        let model_file = File::open(model_path).unwrap();
         let model: CNN = serde_json::from_reader(model_file).unwrap();
 
         model
