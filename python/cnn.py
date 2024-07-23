@@ -13,7 +13,8 @@ elif system == 'Windows':
 else:
     raise RuntimeError(f"Unsupported operating system: {system}")
 
-lib = CDLL(f"./target/release/{lib_filename}")
+lib = CDLL(f"../target/release/{lib_filename}")
+
 
 lib.new_cnn.argtypes = [
     c_char_p,   # dataset_path

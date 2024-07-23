@@ -13,7 +13,7 @@ elif system == 'Windows':
 else:
     raise RuntimeError(f"Unsupported operating system: {system}")
 
-lib = ctypes.CDLL(f"./target/release/{lib_filename}")
+lib = ctypes.CDLL(f"../target/release/{lib_filename}")
 
 lib.new_linear_regression.argtypes = [ctypes.c_size_t]
 lib.new_linear_regression.restype = ctypes.c_void_p
