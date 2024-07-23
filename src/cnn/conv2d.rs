@@ -1,8 +1,10 @@
 use crate::cnn::optimizer::{Optimizer, Optimizer4D};
 use ndarray::{s, Array3, Array4};
 use rand_distr::{Distribution, Normal};
+use serde::{Deserialize, Serialize};
 use std::ops::{AddAssign, SubAssign};
 
+#[derive(Deserialize, Serialize)]
 pub struct Conv2D {
     input_size: (usize, usize, usize),
     kernel_size: usize,

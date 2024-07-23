@@ -5,7 +5,9 @@ use super::weights_init::init_biases;
 use super::weights_init::{init_dense_weights, WeightsInit};
 use ndarray::{Array1, Array2};
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 
+#[derive(Serialize, Deserialize)]
 pub struct Dense {
     input_size: usize,
     pub output_size: usize,

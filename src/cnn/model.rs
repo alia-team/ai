@@ -6,8 +6,10 @@ use super::{conv2d::Conv2D, dense::Dense, layer::LayerType, maxpool2d::MaxPool2D
 use core::panic;
 use indicatif::{ProgressBar, ProgressStyle};
 use ndarray::{Array1, Array3};
+use serde::{Deserialize, Serialize};
 use std::default::Default;
-use std::time::SystemTime;
+use std::fs::File;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 pub struct Hyperparameters {
     pub batch_size: usize,
@@ -25,6 +27,7 @@ impl Default for Hyperparameters {
     }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct MLP {
     layers: Vec<Dense>,
     layer_order: Vec<String>,
@@ -86,13 +89,17 @@ impl MLP {
         self.layer_order.push(String::from("dense"));
     }
 
-    pub fn forward(&mut self, image: Array1<f32>, training: bool) -> Array1<f32> {
-        let mut output: Array1<f32> = image;
+    pub fn forward(&mut self, input: Array1<f32>, training: bool) -> Array1<f32> {
+        let mut output: Array1<f32> = input;
         for layer in &mut self.layers {
             output = layer.forward(output, training);
         }
 
         output
+    }
+
+    pub fn predict(&mut self, input: Array1<f32>) -> Array1<f32> {
+        self.forward(input, false)
     }
 
     pub fn last_layer_error(&mut self, label: u8) -> Array1<f32> {
@@ -202,8 +209,30 @@ impl MLP {
             layer.zero();
         }
     }
+
+    pub fn save(&self, path: &str, model_name: &str) -> String {
+        let timestamp: u128 = self
+            .creation_time
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        let full_path: String = format!("{}{}_{}.json", path, model_name, timestamp);
+        let model_file = std::fs::File::create(full_path.clone()).unwrap();
+        serde_json::to_writer(model_file, &self).unwrap();
+
+        full_path
+    }
+
+    pub fn load(model_file_name: &str) -> MLP {
+        let model_file = File::open(model_file_name).unwrap();
+        let model: MLP = serde_json::from_reader(model_file).unwrap();
+
+        model
+    }
 }
 
+#[derive(Serialize, Deserialize)]
 pub struct CNN {
     layers: Vec<LayerType>,
     layer_order: Vec<String>,
@@ -330,6 +359,10 @@ impl CNN {
         }
 
         flat_output
+    }
+
+    pub fn predict(&mut self, input: Array3<f32>) -> Array1<f32> {
+        self.forward(input, false)
     }
 
     pub fn last_layer_error(&mut self, label: usize) -> Array1<f32> {
@@ -466,5 +499,26 @@ impl CNN {
                 LayerType::Dense(dense_layer) => dense_layer.zero(),
             }
         }
+    }
+
+    pub fn save(&self, path: &str, model_name: &str) -> String {
+        let timestamp: u128 = self
+            .creation_time
+            .duration_since(UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+
+        let full_path: String = format!("{}{}_{}.json", path, model_name, timestamp);
+        let model_file = std::fs::File::create(full_path.clone()).unwrap();
+        serde_json::to_writer(model_file, &self).unwrap();
+
+        full_path
+    }
+
+    pub fn load(model_file_name: &str) -> CNN {
+        let model_file = File::open(model_file_name).unwrap();
+        let model: CNN = serde_json::from_reader(model_file).unwrap();
+
+        model
     }
 }

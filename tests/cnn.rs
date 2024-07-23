@@ -1,9 +1,10 @@
 use ai::cnn::activation::*;
-use ai::cnn::data::{load_image_dataset, Dataset1D, Dataset3D};
+use ai::cnn::data::{load_image, load_image_dataset, Dataset1D, Dataset3D};
 use ai::cnn::model::*;
 use ai::cnn::optimizer::Optimizer;
 use ai::cnn::weights_init::WeightsInit;
-use ndarray::{array, Array1};
+use ndarray::{array, Array1, Array3};
+use std::path::Path;
 
 // WARNING: Comment the alia test case before push: the repo doesn't contain the required dataset.
 /*
@@ -30,12 +31,42 @@ fn alia() {
     cnn.add_maxpool2d_layer(2);
     cnn.add_dense_layer(128, Box::new(ReLU), Some(0.25), WeightsInit::He);
     cnn.add_dense_layer(64, Box::new(ReLU), Some(0.25), WeightsInit::He);
-    cnn.add_dense_layer(10, Box::new(Softmax), None, WeightsInit::Xavier);
+    cnn.add_dense_layer(3, Box::new(Softmax), None, WeightsInit::Xavier);
     println!("CNN built.");
 
     println!("Fitting...");
     cnn.fit();
     println!("Fitting done.");
+
+    println!("Saving model...");
+    let path: &str = "./models/";
+    let model_name: &str = "cnn";
+    let full_path: String = cnn.save(path, model_name);
+    println!("Model saved to {}.", full_path);
+
+    println!("Loading model...");
+    let mut loaded_model: CNN = CNN::load(&full_path);
+    println!("Model loaded.");
+    println!("Predicting... It should predicts a Phidippus.");
+    let image_path: &str = "dataset/phidippus/835255150-388.png";
+    let input: Array3<f32> = load_image(&Path::new(image_path)).expect("Image not found.");
+    let output: Array1<f32> = loaded_model.predict(input);
+
+    // Get predicted class name
+    let max_output: usize = output
+        .iter()
+        .enumerate()
+        .max_by(|(_, a), (_, b)| a.partial_cmp(b).unwrap())
+        .map(|(index, _)| index)
+        .unwrap();
+    let predicted_class: &str = match max_output {
+        0 => "Avicularia",
+        1 => "Phidippus",
+        2 => "Tegenaria",
+        _ => "An error occured.",
+    };
+    println!("Predicted: {:?}", predicted_class);
+    assert_eq!(predicted_class, "Phidippus");
 }
 */
 

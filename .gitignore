@@ -11,3 +11,4 @@ target
 Cargo.lock
 dataset/
 test_images/
+models/
