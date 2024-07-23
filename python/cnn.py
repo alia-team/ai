@@ -15,6 +15,7 @@ else:
 
 lib = CDLL(f"../target/release/{lib_filename}")
 
+
 lib.new_cnn.argtypes = [
     c_char_p,   # dataset_path
     c_double,   # train_ratio
