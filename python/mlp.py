@@ -3,6 +3,8 @@ from ctypes import c_char_p, c_void_p, string_at
 import numpy as np
 import platform
 import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from data_processing import get_all_images_in_folder
 
 
 # Determine the correct shared library filename based on the operating system
@@ -185,22 +187,89 @@ def load_mlp(model_path: str) -> MLP:
     return mlp
 
 if __name__ == "__main__":
-    print("Initializing MLP...")
-    npl = (2, 4, 1)
+    # Example usage:
+    images = get_all_images_in_folder("../datatest")
+    labels = []
+    inputs = []
+    for label, image_vector_ptrs in images.items():
+        labels += [label] * len(image_vector_ptrs)
+        for image_vector_ptr in image_vector_ptrs:
+            image_vector = ctypes.cast(image_vector_ptr, ctypes.POINTER(ctypes.c_double))
+            inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 1,)))
+
+
+    npl = (100 * 100 * 1, 5, 3)
     mlp = MLP(npl)
     mlp.init()
-    training_dataset = np.array([[1, 0], [0, 1], [0, 0], [1, 1]])
-    labels = np.array([[1], [1], [-1], [-1]])
 
-    print("Fitting...")
-    history = mlp.train(training_dataset, labels, training_dataset, labels, 0.1, 1000000, True)
- 
+    labels = [
+        (
+            [1.0, -1.0, -1.0]
+            if label == "phidippus"
+            else [-1.0, 1.0, -1.0] if label == "tegenaria" else [-1.0, -1.0, 1.0]
+        )
+        for label in labels
+    ]
+
+    # Séparer les données en 3 classes
+    class_1_inputs = [
+        inputs[i] for i in range(len(inputs)) if labels[i] == [1.0, -1.0, -1.0]
+    ]
+    class_2_inputs = [
+        inputs[i] for i in range(len(inputs)) if labels[i] == [-1.0, 1.0, -1.0]
+    ]
+    class_3_inputs = [
+        inputs[i] for i in range(len(inputs)) if labels[i] == [-1.0, -1.0, 1.0]
+    ]
+
+    class_1_labels = [
+        labels[i] for i in range(len(labels)) if labels[i] == [1.0, -1.0, -1.0]
+    ]
+    class_2_labels = [
+        labels[i] for i in range(len(labels)) if labels[i] == [-1.0, 1.0, -1.0]
+    ]
+    class_3_labels = [
+        labels[i] for i in range(len(labels)) if labels[i] == [-1.0, -1.0, 1.0]
+    ]
+
+    # Mélanger les données de chaque classe
+    np.random.shuffle(class_1_inputs)
+    np.random.shuffle(class_2_inputs)
+    np.random.shuffle(class_3_inputs)
+
+    # Diviser chaque classe en ensembles d'entraînement et de test
+    train_inputs_1, test_inputs_1, train_labels_1, test_labels_1 = train_test_split(
+        class_1_inputs, class_1_labels, test_size=0.2, random_state=42
+    )
+    train_inputs_2, test_inputs_2, train_labels_2, test_labels_2 = train_test_split(
+        class_2_inputs, class_2_labels, test_size=0.2, random_state=42
+    )
+    train_inputs_3, test_inputs_3, train_labels_3, test_labels_3 = train_test_split(
+        class_3_inputs, class_3_labels, test_size=0.2, random_state=42
+    )
+
+    # Combiner les ensembles d'entraînement et de test
+    training_inputs = train_inputs_1 + train_inputs_2 + train_inputs_3
+    training_labels = train_labels_1 + train_labels_2 + train_labels_3
+    testing_inputs = test_inputs_1 + test_inputs_2 + test_inputs_3
+    testing_labels = test_labels_1 + test_labels_2 + test_labels_3
+
+    # Standardize the dataset
+    x_train_mean = np.mean(training_inputs, axis=0)
+    x_train_std = np.std(training_inputs, axis=0)
+
+    training_inputs = (training_inputs - x_train_mean) / x_train_std
+    testing_inputs = (testing_inputs - x_train_mean) / x_train_std
+
+    print("Training...")
+    res = mlp.train(
+        training_inputs,
+        training_labels,
+        testing_inputs,
+        testing_labels,
+        0.01,
+        10,
+        True,
+    )
     print("Saving model...")
-    full_path: str = mlp.save("../models/", "mlp_xor")
-
-    print("Loading model...")
-    loaded_model: MLP = load_mlp(full_path)
-
-    print('Predicting... It should predict something close to `1`.')
-    output: list[float] = loaded_model.predict(training_dataset[0], True)
-    print(f"Predicted: {output}")
+    full_path: str = mlp.save("../models/", "mlp")

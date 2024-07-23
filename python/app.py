@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from PIL import Image
-# from mlp import *
+from mlp import *
 from cnn import *
 # from naive_rbf import *
 # from rbf import *
@@ -38,11 +38,11 @@ if uploaded_file is not None:
     image.save('tmp_img/image.png')
     img_vector = dp.image_to_vector('tmp_img/image.png')
 
-    # if option == 'MLP':
-    #     model = MLP()
-    #     model.load_model('models/mlp')
-    #     prediction = model.predict(img_vector)
-    # if option == 'CNN':
+    if option == 'MLP':
+        model = load_mlp('../models/mlp.json')
+        print(img_vector)
+        prediction = model.predict(img_vector, True)
+    # elif option == 'CNN':
     #     print("loading model...")
     #     model = load_cnn('../models/cnn.json')
     #     print("predicting...")
@@ -58,7 +58,6 @@ if uploaded_file is not None:
     #     prediction = model.predict(img_vector)
 
 
-    prediction = [1,0,0]
     max_index = prediction.index(max(prediction))
     if max_index == 0:
         prediction = 'Avicularia'
