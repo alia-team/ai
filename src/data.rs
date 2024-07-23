@@ -95,7 +95,7 @@ impl Dataset for Dataset1D {
     }
 }
 
-#[derive(Serialize, Deserialize)]
+#[derive(Deserialize, Serialize)]
 pub struct Dataset3D {
     training_samples: Vec<Array3<f64>>,
     training_targets: Vec<usize>,
