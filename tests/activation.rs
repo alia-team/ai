@@ -1,4 +1,4 @@
-use ai::activation::{enum_to_activation, Activation, ActivationEnum, Tanh};
+use ai::activation::{enum_to_activation, Activation, ActivationEnum};
 use ndarray::{arr1, Array1};
 
 #[test]
