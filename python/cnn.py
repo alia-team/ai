@@ -183,7 +183,7 @@ if __name__ == "__main__":
         beta1,
         beta2
     )
-    cnn.set_input_shape([100, 100, 3]);
+    cnn.set_input_shape([100, 100, 1]);
     cnn.add_conv2d_layer(8, 3);
     cnn.add_maxpool2d_layer(2);
     cnn.add_dense_layer(128, "relu", 0.25, "he");

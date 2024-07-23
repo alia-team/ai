@@ -188,7 +188,7 @@ def load_mlp(model_path: str) -> MLP:
 
 if __name__ == "__main__":
     # Example usage:
-    images = get_all_images_in_folder("../datatest")
+    images = get_all_images_in_folder("../dataset")
     labels = []
     inputs = []
     for label, image_vector_ptrs in images.items():

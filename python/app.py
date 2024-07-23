@@ -31,23 +31,21 @@ if uploaded_file is not None:
     
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     st.write("")
-    st.write("Classifying...")
     image = resize_image(uploaded_file, (100, 100))
     image = convert_to_palette_mode_file(uploaded_file)
 
     image.save('tmp_img/image.png')
     img_vector = dp.image_to_vector('tmp_img/image.png')
+    prediction = [0., 0., 0.]
 
     if option == 'MLP':
         model = load_mlp('../models/mlp.json')
-        print(img_vector)
         prediction = model.predict(img_vector, True)
-    # elif option == 'CNN':
-    #     print("loading model...")
-    #     model = load_cnn('../models/cnn.json')
-    #     print("predicting...")
-    #     prediction = model.predict('tmp_img/image.png')
-    #     prediction = str(prediction)
+    elif option == 'CNN':
+         st.write("Loading model...")
+         model = load_cnn('../models/cnn.json')
+         st.write("Predicting...")
+         prediction = model.predict('tmp_img/image.png')
     # elif option == 'Naive RBF':
     #     model = NaiveRBF()
     #     model.load_model('models/naive_rbf')
