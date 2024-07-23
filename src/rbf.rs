@@ -1,5 +1,5 @@
 extern crate rand;
-use crate::activation::{string_to_activation, Activation};
+use crate::activation::{str_to_activation, Activation};
 use crate::util::{self, c_str_to_rust_str};
 use nalgebra::DMatrix;
 use ndarray::arr1;
@@ -60,7 +60,7 @@ impl RBF {
             );
         }
 
-        let activation_struct: Box<dyn Activation> = string_to_activation(activation);
+        let activation_struct: Box<dyn Activation> = str_to_activation(activation);
 
         let mut rng = rand::thread_rng();
         let mut centroids: Vec<Centroid> = Vec::with_capacity(neurons_per_layer[1]);

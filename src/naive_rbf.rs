@@ -1,5 +1,5 @@
 extern crate rand;
-use crate::activation::{string_to_activation, Activation};
+use crate::activation::{str_to_activation, Activation};
 use crate::util::{self, c_str_to_rust_str};
 use nalgebra::*;
 use ndarray::arr1;
@@ -49,7 +49,7 @@ impl NaiveRBF {
         activation: &str,
         training_dataset: Vec<Vec<f64>>,
     ) -> Self {
-        let activation_fn: Box<dyn Activation> = string_to_activation(activation);
+        let activation_fn: Box<dyn Activation> = str_to_activation(activation);
 
         // Initialize centroids
         let mut centroids: Vec<Centroid> = vec![];

@@ -1,6 +1,16 @@
 use ndarray::{Array1, Array2, Array4};
 use serde::{Deserialize, Serialize};
 
+pub fn str_to_optmizer(string: &str, learning_rate: f64, param2: f64, param3: f64) -> Optimizer {
+    match string.to_lowercase().as_str() {
+        "sgd" => Optimizer::SGD(learning_rate),
+        "momentum" => Optimizer::Momentum(learning_rate, param2),
+        "rmsprop" => Optimizer::RMSProp(learning_rate, param2),
+        "adam" => Optimizer::Adam(learning_rate, param2, param3),
+        _ => panic!("Not a supported optimizer."),
+    }
+}
+
 #[derive(Deserialize, Serialize, Clone, Copy)]
 pub enum Optimizer {
     SGD(f64),            // Learning rate
