@@ -13,7 +13,8 @@ elif system == 'Windows':
 else:
     raise RuntimeError(f"Unsupported operating system: {system}")
 
-lib = CDLL(f"./target/release/{lib_filename}")
+lib = CDLL(f"../target/release/{lib_filename}")
+
 
 lib.new_cnn.argtypes = [
     c_char_p,   # dataset_path
@@ -159,63 +160,63 @@ def load_cnn(model_path: str) -> CNN:
     cnn.output_size = 3 # To refactor so we get it dynamically
     return cnn
 
+if __name__ == "__main__":
+    print("Initializing CNN...")
+    cnn = CNN()
+    dataset_path: str = "./dataset/"
+    train_ratio: float = 0.8
+    image_per_class: int = 100
+    batch_size: int = 10
+    epochs: int = 10
+    optimizer: str = "adam"
+    learning_rate: float = 0.001
+    beta1: float = 0.9
+    beta2: float = 0.9
+    cnn.setup(
+        dataset_path,
+        train_ratio,
+        image_per_class,
+        batch_size,
+        epochs,
+        optimizer,
+        learning_rate,
+        beta1,
+        beta2
+    )
+    cnn.set_input_shape([100, 100, 3]);
+    cnn.add_conv2d_layer(8, 3);
+    cnn.add_maxpool2d_layer(2);
+    cnn.add_dense_layer(128, "relu", 0.25, "he");
+    cnn.add_dense_layer(64, "relu", 0.25, "he");
+    cnn.add_dense_layer(3, "softmax", 0., "xavier");
 
-print("Initializing CNN...")
-cnn = CNN()
-dataset_path: str = "./dataset/"
-train_ratio: float = 0.8
-image_per_class: int = 100
-batch_size: int = 10
-epochs: int = 10
-optimizer: str = "adam"
-learning_rate: float = 0.001
-beta1: float = 0.9
-beta2: float = 0.9
-cnn.setup(
-    dataset_path,
-    train_ratio,
-    image_per_class,
-    batch_size,
-    epochs,
-    optimizer,
-    learning_rate,
-    beta1,
-    beta2
-)
-cnn.set_input_shape([100, 100, 3]);
-cnn.add_conv2d_layer(8, 3);
-cnn.add_maxpool2d_layer(2);
-cnn.add_dense_layer(128, "relu", 0.25, "he");
-cnn.add_dense_layer(64, "relu", 0.25, "he");
-cnn.add_dense_layer(3, "softmax", 0., "xavier");
+    print("Fitting...")
+    cnn.fit()
 
-print("Fitting...")
-cnn.fit()
+    print("Saving model...")
+    full_path: str = cnn.save("./models/", "python_240")
+    print("Freeing CNN...")
+    cnn.free()
+    print("Freed.")
 
-print("Saving model...")
-full_path: str = cnn.save("./models/", "python_240")
-print("Freeing CNN...")
-cnn.free()
-print("Freed.")
+    print("Loading model...")
+    loaded_cnn: CNN = load_cnn(full_path)
 
-print("Loading model...")
-loaded_cnn: CNN = load_cnn(full_path)
+    print('Predicting... It should predict "phidippus".')
+    image_path: str = "./dataset/phidippus/835255150-388.png"
+    output: list[float] = loaded_cnn.predict(image_path)
+    predicted: str = ""
+    match output.index(max(output)):
+        case 0:
+            predicted = "avicularia"
+        case 1:
+            predicted = "phidippus"
+        case 2:
+            predicted = "tegenaria"
+        case _:
+            predicted = "error during prediction"
+    print(f"Predicted: {predicted}")
 
-print('Predicting... It should predict "phidippus".')
-image_path: str = "./dataset/phidippus/835255150-388.png"
-output: list[float] = loaded_cnn.predict(image_path)
-predicted: str = ""
-match output.index(max(output)):
-    case 0:
-        predicted = "avicularia"
-    case 1:
-        predicted = "phidippus"
-    case 2:
-        predicted = "tegenaria"
-    case _:
-        predicted = "error during prediction"
-print(f"Predicted: {predicted}")
-
-print("Freeing loaded CNN...")
-loaded_cnn.free()
-print("Freed.")
+    print("Freeing loaded CNN...")
+    loaded_cnn.free()
+    print("Freed.")
