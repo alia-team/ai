@@ -9,7 +9,8 @@ use ndarray::{Array1, Array3};
 use serde::{Deserialize, Serialize};
 use std::default::Default;
 use std::fs::File;
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::path::Path;
+use std::time::SystemTime;
 
 pub struct Hyperparameters {
     pub batch_size: usize,
@@ -212,13 +213,7 @@ impl MLP {
     }
 
     pub fn save(&self, path: &str, model_name: &str) -> String {
-        let timestamp: u128 = self
-            .creation_time
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
-
-        let full_path: String = format!("{}{}_{}.json", path, model_name, timestamp);
+        let full_path: String = format!("{}{}.json", path, model_name);
         let model_file = std::fs::File::create(full_path.clone()).unwrap();
         serde_json::to_writer(model_file, &self).unwrap();
 
@@ -362,12 +357,13 @@ impl CNN {
         flat_output
     }
 
-    pub fn predict(&mut self, input: Array3<f64>) -> Array1<f64> {
+    pub fn predict(&mut self, image_path: &str) -> Array1<f64> {
+        let input: Array3<f64> = load_image(Path::new(image_path)).expect("Image not found.");
         self.forward(input, false)
     }
 
     pub fn last_layer_error(&mut self, label: usize) -> Array1<f64> {
-        let size: usize = match self.layers.last().unwrap() {
+        let size: usize = match self.layers.last().expect("Model has no layer.") {
             LayerType::Dense(dense_layer) => dense_layer.output_size,
             _ => panic!("Last layer must be a dense layer."),
         };
@@ -504,13 +500,7 @@ impl CNN {
     }
 
     pub fn save(&self, path: &str, model_name: &str) -> String {
-        let timestamp: u128 = self
-            .creation_time
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_millis();
-
-        let full_path: String = format!("{}{}_{}.json", path, model_name, timestamp);
+        let full_path: String = format!("{}{}.json", path, model_name);
         let model_file = std::fs::File::create(full_path.clone()).unwrap();
         serde_json::to_writer(model_file, &self).unwrap();
 
