@@ -2,7 +2,6 @@ use crate::optimizer::{Optimizer, Optimizer4D};
 use ndarray::{s, Array3, Array4};
 use rand_distr::{Distribution, Normal};
 use serde::{Deserialize, Serialize};
-use std::ops::{AddAssign, SubAssign};
 
 #[derive(Deserialize, Serialize)]
 pub struct Conv2D {
@@ -96,27 +95,48 @@ impl Conv2D {
     }
 
     pub fn backward(&mut self, error: Array3<f64>) -> Array3<f64> {
-        let mut prev_error: Array3<f64> = Array3::<f64>::zeros(self.input_size);
-        for f in 0..self.output_size.2 {
-            for y in 0..self.output_size.1 {
-                for x in 0..self.output_size.0 {
+        assert_eq!(
+            error.shape(),
+            [self.output_size.0, self.output_size.1, self.output_size.2],
+            "Error shape mismatch"
+        );
+
+        let mut prev_error = Array3::<f64>::zeros(self.input_size);
+        let (out_x, out_y, out_z) = self.output_size;
+        let (in_x, in_y, in_z) = (self.input_size.0, self.input_size.1, self.input_size.2);
+
+        for f in 0..out_z {
+            for y in 0..out_y {
+                for x in 0..out_x {
                     if self.output[[x, y, f]] <= 0.0 {
                         continue;
                     }
-                    prev_error
-                        .slice_mut(s![x..x + self.kernel_size, y..y + self.kernel_size, ..])
-                        .add_assign(&(error[[x, y, f]] * &self.kernels.slice(s![f, .., .., ..])));
 
-                    let input_slice =
-                        self.input
-                            .slice(s![x..x + self.kernel_size, y..y + self.kernel_size, ..]);
-                    self.kernel_changes
-                        .slice_mut(s![f, .., .., ..])
-                        .sub_assign(&(error[[x, y, f]] * &input_slice));
+                    let x_end = (x + self.kernel_size).min(in_x);
+                    let y_end = (y + self.kernel_size).min(in_y);
+
+                    // Update prev_error
+                    for kx in x..x_end {
+                        for ky in y..y_end {
+                            for kz in 0..in_z {
+                                prev_error[[kx, ky, kz]] +=
+                                    error[[x, y, f]] * self.kernels[[f, kx - x, ky - y, kz]];
+                            }
+                        }
+                    }
+
+                    // Update kernel_changes
+                    for kx in 0..(x_end - x) {
+                        for ky in 0..(y_end - y) {
+                            for kz in 0..in_z {
+                                self.kernel_changes[[f, kx, ky, kz]] -=
+                                    error[[x, y, f]] * self.input[[x + kx, y + ky, kz]];
+                            }
+                        }
+                    }
                 }
             }
         }
-
         prev_error
     }
 

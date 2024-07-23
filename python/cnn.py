@@ -163,7 +163,7 @@ def load_cnn(model_path: str) -> CNN:
 if __name__ == "__main__":
     print("Initializing CNN...")
     cnn = CNN()
-    dataset_path: str = "./dataset/"
+    dataset_path: str = "../dataset/"
     train_ratio: float = 0.8
     image_per_class: int = 100
     batch_size: int = 10
@@ -183,7 +183,7 @@ if __name__ == "__main__":
         beta1,
         beta2
     )
-    cnn.set_input_shape([100, 100, 3]);
+    cnn.set_input_shape([100, 100, 1]);
     cnn.add_conv2d_layer(8, 3);
     cnn.add_maxpool2d_layer(2);
     cnn.add_dense_layer(128, "relu", 0.25, "he");
@@ -194,7 +194,7 @@ if __name__ == "__main__":
     cnn.fit()
 
     print("Saving model...")
-    full_path: str = cnn.save("./models/", "python_240")
+    full_path: str = cnn.save("../models/", "python_240")
     print("Freeing CNN...")
     cnn.free()
     print("Freed.")
@@ -203,7 +203,7 @@ if __name__ == "__main__":
     loaded_cnn: CNN = load_cnn(full_path)
 
     print('Predicting... It should predict "phidippus".')
-    image_path: str = "./dataset/phidippus/835255150-388.png"
+    image_path: str = "../dataset/phidippus/835255150-388.png"
     output: list[float] = loaded_cnn.predict(image_path)
     predicted: str = ""
     match output.index(max(output)):

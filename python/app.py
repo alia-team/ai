@@ -1,7 +1,7 @@
 import streamlit as st
 import os
 from PIL import Image
-# from mlp import *
+from mlp import *
 from cnn import *
 # from naive_rbf import *
 # from rbf import *
@@ -31,23 +31,21 @@ if uploaded_file is not None:
     
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     st.write("")
-    st.write("Classifying...")
     image = resize_image(uploaded_file, (100, 100))
     image = convert_to_palette_mode_file(uploaded_file)
 
     image.save('tmp_img/image.png')
     img_vector = dp.image_to_vector('tmp_img/image.png')
+    prediction = [0.,0.,0.]
 
-    # if option == 'MLP':
-    #     model = MLP()
-    #     model.load_model('models/mlp')
-    #     prediction = model.predict(img_vector)
-    # if option == 'CNN':
-    #     print("loading model...")
-    #     model = load_cnn('../models/cnn.json')
-    #     print("predicting...")
-    #     prediction = model.predict('tmp_img/image.png')
-    #     prediction = str(prediction)
+    if option == 'MLP':
+         model = load_mlp('../models/mlp.json')
+         prediction = model.predict(img_vector, True)
+    elif option == 'CNN':
+         st.write("Loading model...")
+         model = load_cnn('../models/cnn_240.json')
+         st.write("Predicting...")
+         prediction = model.predict('tmp_img/image.png')
     # elif option == 'Naive RBF':
     #     model = NaiveRBF()
     #     model.load_model('models/naive_rbf')
@@ -57,8 +55,6 @@ if uploaded_file is not None:
     #     model.load_model('models/rbf')
     #     prediction = model.predict(img_vector)
 
-
-    prediction = [1,0,0]
     max_index = prediction.index(max(prediction))
     if max_index == 0:
         prediction = 'Avicularia'
