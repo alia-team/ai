@@ -7,15 +7,10 @@ from cnn import *
 # from rbf import *
 import data_processing as dp
 
-def convert_to_palette_mode_file(image):
-    image = Image.open(image)
-    image = image.convert('P', palette=Image.ADAPTIVE, colors=256)
-    return image
-
-def resize_image(image, size):
-    image = Image.open(image)
-    image = image.resize(size)
-    return image
+def image_to_vector(image):
+    image_array = np.array(image)
+    image_vector = image_array.flatten()
+    return image_vector
 
 st.title('ALIA')
 st.write('Bienvenu sur ALIA, l\'application qui vous permet d\'en apprendre plus sur les araignées et de savoir à laquelle vous avez a faire.')
@@ -31,11 +26,13 @@ if uploaded_file is not None:
     
     st.image(image, caption='Uploaded Image.', use_column_width=True)
     st.write("")
-    image = resize_image(uploaded_file, (100, 100))
-    image = convert_to_palette_mode_file(uploaded_file)
 
-    image.save('tmp_img/image.png')
-    img_vector = dp.image_to_vector('tmp_img/image.png')
+    img_resize = image.resize((100,100))
+    img = img_resize.convert('P', palette=Image.ADAPTIVE, colors=256)
+    if not os.path.exists('tmp_img'):
+        os.makedirs('tmp_img')
+    img.save('tmp_img/image.png')
+    img_vector = image_to_vector(img)
     prediction = [0., 0., 0.]
 
     if option == 'MLP':

@@ -268,7 +268,7 @@ if __name__ == "__main__":
         testing_inputs,
         testing_labels,
         0.01,
-        10,
+        1000,
         True,
     )
     print("Saving model...")
