@@ -15,9 +15,9 @@ pub trait Dataset {
 
 #[derive(Serialize, Deserialize)]
 pub struct Dataset1D {
-    training_samples: Vec<Array1<f32>>,
+    training_samples: Vec<Array1<f64>>,
     training_targets: Vec<u8>,
-    testing_samples: Vec<Array1<f32>>,
+    testing_samples: Vec<Array1<f64>>,
     testing_targets: Vec<u8>,
     pub training_size: usize,
     pub testing_size: usize,
@@ -26,19 +26,19 @@ pub struct Dataset1D {
 
 impl Dataset1D {
     pub fn new(
-        samples: Vec<Array1<f32>>,
+        samples: Vec<Array1<f64>>,
         targets: Vec<u8>,
-        train_ratio: f32,
+        train_ratio: f64,
         max_samples_per_class: Option<u8>,
     ) -> Self {
-        let mut training_samples: Vec<Array1<f32>> = Vec::new();
+        let mut training_samples: Vec<Array1<f64>> = Vec::new();
         let mut training_targets: Vec<u8> = Vec::new();
-        let mut testing_samples: Vec<Array1<f32>> = Vec::new();
+        let mut testing_samples: Vec<Array1<f64>> = Vec::new();
         let mut testing_targets: Vec<u8> = Vec::new();
         let mut classes: HashMap<u8, u8> = HashMap::new();
 
         let num_samples = max_samples_per_class.unwrap_or(samples.len() as u8);
-        let num_training_samples = (num_samples as f32 * train_ratio).round() as usize;
+        let num_training_samples = (num_samples as f64 * train_ratio).round() as usize;
 
         for (i, sample) in samples.into_iter().take(num_samples as usize).enumerate() {
             if i < num_training_samples {
@@ -74,7 +74,7 @@ impl Dataset1D {
 }
 
 impl Dataset for Dataset1D {
-    type Array = Array1<f32>;
+    type Array = Array1<f64>;
 
     fn get_random_training_sample(&self) -> Result<(Self::Array, u8), String> {
         let mut rng = thread_rng();
@@ -97,9 +97,9 @@ impl Dataset for Dataset1D {
 
 #[derive(Serialize, Deserialize)]
 pub struct Dataset3D {
-    training_samples: Vec<Array3<f32>>,
+    training_samples: Vec<Array3<f64>>,
     training_targets: Vec<usize>,
-    testing_samples: Vec<Array3<f32>>,
+    testing_samples: Vec<Array3<f64>>,
     testing_targets: Vec<usize>,
     pub training_size: usize,
     pub testing_size: usize,
@@ -107,7 +107,7 @@ pub struct Dataset3D {
 }
 
 impl Dataset3D {
-    pub fn get_random_sample(&self) -> Result<(Array3<f32>, usize), String> {
+    pub fn get_random_sample(&self) -> Result<(Array3<f64>, usize), String> {
         let mut rng = thread_rng();
         let index = rng.gen_range(0..self.training_size);
         Ok((
@@ -116,7 +116,7 @@ impl Dataset3D {
         ))
     }
 
-    pub fn get_random_test_sample(&self) -> Result<(Array3<f32>, usize), String> {
+    pub fn get_random_test_sample(&self) -> Result<(Array3<f64>, usize), String> {
         let mut rng = thread_rng();
         let index = rng.gen_range(0..self.testing_size);
         Ok((
@@ -128,7 +128,7 @@ impl Dataset3D {
 
 pub fn load_image_dataset<T>(
     dataset_path: T,
-    train_ratio: f32,
+    train_ratio: f64,
     max_images_per_class: Option<usize>,
 ) -> Result<Dataset3D, String>
 where
@@ -177,7 +177,7 @@ where
             .collect();
 
         let num_images = max_images_per_class.unwrap_or(images.len());
-        let num_train = (num_images as f32 * train_ratio).round() as usize;
+        let num_train = (num_images as f64 * train_ratio).round() as usize;
 
         for (i, img_path) in images.into_iter().take(num_images).enumerate() {
             if i < num_train {
@@ -204,7 +204,7 @@ where
     })
 }
 
-pub fn load_image(path: &Path) -> Result<Array3<f32>, String> {
+pub fn load_image(path: &Path) -> Result<Array3<f64>, String> {
     let img = ImageReader::open(path)
         .map_err(|e| e.to_string())?
         .decode()
@@ -214,7 +214,7 @@ pub fn load_image(path: &Path) -> Result<Array3<f32>, String> {
     let cols = img.width() as usize;
     let mut array = Array3::zeros((rows, cols, 3));
     for (x, y, pixel) in img.enumerate_pixels() {
-        let (r, g, b) = (pixel[0] as f32, pixel[1] as f32, pixel[2] as f32);
+        let (r, g, b) = (pixel[0] as f64, pixel[1] as f64, pixel[2] as f64);
         array[[y as usize, x as usize, 0]] = r / 255.0;
         array[[y as usize, x as usize, 1]] = g / 255.0;
         array[[y as usize, x as usize, 2]] = b / 255.0;

@@ -31,8 +31,8 @@ impl MaxPool2D {
             Array4::<usize>::zeros((self.output_size.0, self.output_size.1, self.input_size.2, 2));
     }
 
-    pub fn forward(&mut self, input: Array3<f32>) -> Array3<f32> {
-        let mut output: Array3<f32> = Array3::<f32>::zeros(self.output_size);
+    pub fn forward(&mut self, input: Array3<f64>) -> Array3<f64> {
+        let mut output: Array3<f64> = Array3::<f64>::zeros(self.output_size);
 
         for f in 0..self.output_size.2 {
             for y in 0..self.output_size.1 {
@@ -45,7 +45,7 @@ impl MaxPool2D {
                         for kx in 0..self.kernel_size {
                             let index: (usize, usize) =
                                 (x * self.stride + kx, y * self.stride + ky);
-                            let value: f32 = input[[index.0, index.1, f]];
+                            let value: f64 = input[[index.0, index.1, f]];
 
                             if value > output[[x, y, f]] {
                                 output[[x, y, f]] = value;
@@ -60,8 +60,8 @@ impl MaxPool2D {
         output
     }
 
-    pub fn backward(&mut self, error: Array3<f32>) -> Array3<f32> {
-        let mut prev_error: Array3<f32> = Array3::<f32>::zeros(self.input_size);
+    pub fn backward(&mut self, error: Array3<f64>) -> Array3<f64> {
+        let mut prev_error: Array3<f64> = Array3::<f64>::zeros(self.input_size);
 
         for f in 0..self.output_size.2 {
             for y in 0..self.output_size.1 {

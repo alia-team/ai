@@ -1,6 +1,18 @@
 extern crate rand;
+use ndarray::{Array1, Array2};
 use rand::Rng;
 use std::ffi::{c_char, CStr};
+
+/// Computes the outer product of two vectors
+pub fn outer(x: Array1<f64>, y: Array1<f64>) -> Array2<f64> {
+    let mut result: Array2<f64> = Array2::<f64>::zeros((x.len(), y.len()));
+    for i in 0..x.len() {
+        for j in 0..y.len() {
+            result[[i, j]] = x[i] * y[j];
+        }
+    }
+    result
+}
 
 pub fn init_outputs(neurons_per_layer: Vec<usize>, is_rbf: bool) -> Vec<Vec<f64>> {
     let mut outputs: Vec<Vec<f64>> = vec![];

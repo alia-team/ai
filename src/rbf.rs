@@ -1,6 +1,6 @@
 extern crate rand;
 use crate::activation::{string_to_activation, Activation};
-use crate::utils::{self, c_str_to_rust_str};
+use crate::util::{self, c_str_to_rust_str};
 use nalgebra::DMatrix;
 use ndarray::arr1;
 use rand::seq::SliceRandom;
@@ -103,8 +103,8 @@ impl RBF {
             centroids.push(Centroid::new(training_dataset[index].clone()));
         }
 
-        let weights = utils::init_weights(neurons_per_layer.to_vec(), true);
-        let outputs = utils::init_outputs(neurons_per_layer.to_vec(), true);
+        let weights = util::init_weights(neurons_per_layer.to_vec(), true);
+        let outputs = util::init_outputs(neurons_per_layer.to_vec(), true);
         let gamma = rand::thread_rng().gen_range(0.01..=1.0);
 
         RBF {
@@ -145,7 +145,7 @@ impl RBF {
             }
 
             // Activation
-            self.outputs[2][i] = self.activation.forward(&arr1(&[weighted_sum]))[0];
+            self.outputs[2][i] = self.activation.forward(arr1(&[weighted_sum]))[0];
         }
 
         self.outputs[2].clone()
@@ -160,7 +160,7 @@ impl RBF {
                 let mut min_dist = f64::MAX;
                 let mut min_index = 0;
                 for (i, centroid) in self.centroids.iter().enumerate() {
-                    let dist = utils::euclidean_distance(point, &centroid.coordinates);
+                    let dist = util::euclidean_distance(point, &centroid.coordinates);
                     if dist < min_dist {
                         min_dist = dist;
                         min_index = i;
@@ -172,7 +172,7 @@ impl RBF {
             // Update step
             for (j, cluster) in clusters.iter().enumerate() {
                 if !cluster.is_empty() {
-                    let new_centroid = utils::compute_centroid(cluster);
+                    let new_centroid = util::compute_centroid(cluster);
                     self.centroids[j] = Centroid::new(new_centroid);
                 }
             }

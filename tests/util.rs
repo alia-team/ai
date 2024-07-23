@@ -1,4 +1,4 @@
-use ai::utils;
+use ai::util;
 use approx::assert_relative_eq;
 
 #[test]
@@ -6,7 +6,7 @@ fn init_outputs() {
     let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
 
     // Check for a non-RBF neural network
-    let outputs: Vec<Vec<f64>> = utils::init_outputs(neurons_per_layer.clone(), false);
+    let outputs: Vec<Vec<f64>> = util::init_outputs(neurons_per_layer.clone(), false);
 
     // Check number of layers
     assert_eq!(outputs.len(), 3);
@@ -33,7 +33,7 @@ fn init_outputs() {
     }
 
     // Check for a RBF neural network
-    let outputs: Vec<Vec<f64>> = utils::init_outputs(neurons_per_layer.clone(), true);
+    let outputs: Vec<Vec<f64>> = util::init_outputs(neurons_per_layer.clone(), true);
 
     assert_eq!(outputs.len(), 3);
     for layer in 0..outputs.len() {
@@ -50,7 +50,7 @@ fn init_weights() {
     let neurons_per_layer: Vec<usize> = vec![2, 3, 1];
 
     // Check for a non-RBF neural network
-    let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone(), false);
+    let weights: Vec<Vec<Vec<f64>>> = util::init_weights(neurons_per_layer.clone(), false);
 
     // Checking number of layers
     assert_eq!(weights.len(), 3);
@@ -73,7 +73,7 @@ fn init_weights() {
     }
 
     // Check for a RBF neural network
-    let weights: Vec<Vec<Vec<f64>>> = utils::init_weights(neurons_per_layer.clone(), true);
+    let weights: Vec<Vec<Vec<f64>>> = util::init_weights(neurons_per_layer.clone(), true);
 
     assert_eq!(weights.len(), 3);
 
@@ -92,18 +92,18 @@ fn euclidian_distance() {
     let a = vec![1.0, 0.0];
     let b = vec![0.0, 1.0];
     assert_relative_eq!(
-        utils::euclidean_distance(&a, &b),
+        util::euclidean_distance(&a, &b),
         std::f64::consts::SQRT_2,
         epsilon = 1e-10
     );
 
     let a = vec![1.0, 1.0];
     let b = vec![1.0, 1.0];
-    assert_eq!(utils::euclidean_distance(&a, &b), 0.0);
+    assert_eq!(util::euclidean_distance(&a, &b), 0.0);
 
     let a = vec![1.0, 2.0];
     let b = vec![3.0, 4.0];
-    assert_eq!(utils::euclidean_distance(&a, &b), 2.8284271247461903);
+    assert_eq!(util::euclidean_distance(&a, &b), 2.8284271247461903);
 }
 
 #[test]
@@ -113,12 +113,12 @@ fn compute_centroid() {
     let c = vec![1.0, -1.0];
     let d = vec![-1.0, -1.0];
     let cluster = vec![a, b, c, d];
-    assert_eq!(utils::compute_centroid(&cluster), vec![0.0, 0.0]);
+    assert_eq!(util::compute_centroid(&cluster), vec![0.0, 0.0]);
 
     let a = vec![0.0, 0.0];
     let b = vec![0.0, 2.0];
     let c = vec![2.0, 2.0];
     let d = vec![2.0, 0.0];
     let cluster = vec![a, b, c, d];
-    assert_eq!(utils::compute_centroid(&cluster), vec![1.0, 1.0]);
+    assert_eq!(util::compute_centroid(&cluster), vec![1.0, 1.0]);
 }

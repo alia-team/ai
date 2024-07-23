@@ -1,6 +1,6 @@
 extern crate rand;
 use crate::activation::{string_to_activation, Activation};
-use crate::utils::{self, c_str_to_rust_str};
+use crate::util::{self, c_str_to_rust_str};
 use nalgebra::*;
 use ndarray::arr1;
 use rand::Rng;
@@ -62,8 +62,8 @@ impl NaiveRBF {
             training_dataset.len(),
             outpout_neurons_count,
         ];
-        let weights = utils::init_weights(neurons_per_layer.clone(), true);
-        let outputs = utils::init_outputs(neurons_per_layer.clone(), true);
+        let weights = util::init_weights(neurons_per_layer.clone(), true);
+        let outputs = util::init_outputs(neurons_per_layer.clone(), true);
         let gamma = rand::thread_rng().gen_range(0.01..=1.0);
 
         NaiveRBF {
@@ -146,7 +146,7 @@ impl NaiveRBF {
             }
 
             // Activation
-            self.outputs[2][i] = self.activation.forward(&arr1(&[weighted_sum]))[0];
+            self.outputs[2][i] = self.activation.forward(arr1(&[weighted_sum]))[0];
         }
 
         self.outputs[2].clone()

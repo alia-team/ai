@@ -1,4 +1,4 @@
-use crate::cnn::optimizer::{Optimizer, Optimizer4D};
+use crate::optimizer::{Optimizer, Optimizer4D};
 use ndarray::{s, Array3, Array4};
 use rand_distr::{Distribution, Normal};
 use serde::{Deserialize, Serialize};
@@ -9,23 +9,23 @@ pub struct Conv2D {
     input_size: (usize, usize, usize),
     kernel_size: usize,
     pub output_size: (usize, usize, usize),
-    input: Array3<f32>,
-    output: Array3<f32>,
+    input: Array3<f64>,
+    output: Array3<f64>,
     num_filters: usize,
-    kernels: Array4<f32>,
-    kernel_changes: Array4<f32>,
+    kernels: Array4<f64>,
+    kernel_changes: Array4<f64>,
     optimizer: Optimizer4D,
 }
 
 impl Conv2D {
     pub fn zero(&mut self) {
-        self.kernel_changes = Array4::<f32>::zeros((
+        self.kernel_changes = Array4::<f64>::zeros((
             self.num_filters,
             self.kernel_size,
             self.kernel_size,
             self.input_size.2,
         ));
-        self.output = Array3::<f32>::zeros(self.output_size);
+        self.output = Array3::<f64>::zeros(self.output_size);
     }
 
     /// Create a new max pooling layer with the given parameters
@@ -39,7 +39,7 @@ impl Conv2D {
         let output_width: usize = ((input_size.0 - kernel_size) / stride) + 1;
         let output_size = (output_width, output_width, num_filters);
         let mut kernels =
-            Array4::<f32>::zeros((num_filters, kernel_size, kernel_size, input_size.2));
+            Array4::<f64>::zeros((num_filters, kernel_size, kernel_size, input_size.2));
         let normal = Normal::new(0.0, 1.0).unwrap();
 
         for f in 0..num_filters {
@@ -47,7 +47,7 @@ impl Conv2D {
                 for ky in 0..kernel_size {
                     for kx in 0..kernel_size {
                         kernels[[f, ky, kx, kd]] = normal.sample(&mut rand::thread_rng())
-                            * (2.0 / (input_size.0.pow(2)) as f32).sqrt();
+                            * (2.0 / (input_size.0.pow(2)) as f64).sqrt();
                     }
                 }
             }
@@ -62,11 +62,11 @@ impl Conv2D {
             input_size,
             kernel_size,
             output_size,
-            output: Array3::<f32>::zeros(output_size),
-            input: Array3::<f32>::zeros(input_size),
+            output: Array3::<f64>::zeros(output_size),
+            input: Array3::<f64>::zeros(input_size),
             num_filters,
             kernels,
-            kernel_changes: Array4::<f32>::zeros((
+            kernel_changes: Array4::<f64>::zeros((
                 num_filters,
                 kernel_size,
                 kernel_size,
@@ -78,7 +78,7 @@ impl Conv2D {
         layer
     }
 
-    pub fn forward(&mut self, input: Array3<f32>) -> Array3<f32> {
+    pub fn forward(&mut self, input: Array3<f64>) -> Array3<f64> {
         self.input = input;
         for f in 0..self.output_size.2 {
             let kernel_slice = self.kernels.slice(s![f, .., .., ..]);
@@ -95,8 +95,8 @@ impl Conv2D {
         self.output.clone()
     }
 
-    pub fn backward(&mut self, error: Array3<f32>) -> Array3<f32> {
-        let mut prev_error: Array3<f32> = Array3::<f32>::zeros(self.input_size);
+    pub fn backward(&mut self, error: Array3<f64>) -> Array3<f64> {
+        let mut prev_error: Array3<f64> = Array3::<f64>::zeros(self.input_size);
         for f in 0..self.output_size.2 {
             for y in 0..self.output_size.1 {
                 for x in 0..self.output_size.0 {
@@ -121,9 +121,9 @@ impl Conv2D {
     }
 
     pub fn update(&mut self, minibatch_size: usize) {
-        self.kernel_changes /= minibatch_size as f32;
+        self.kernel_changes /= minibatch_size as f64;
         self.kernels += &self.optimizer.weight_changes(&self.kernel_changes);
-        self.kernel_changes = Array4::<f32>::zeros((
+        self.kernel_changes = Array4::<f64>::zeros((
             self.num_filters,
             self.kernel_size,
             self.kernel_size,
