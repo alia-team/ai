@@ -9,6 +9,7 @@ pub enum ActivationEnum {
     ReLU,
     Sigmoid,
     Sign,
+    Softmax,
     TanH,
 }
 
@@ -21,18 +22,20 @@ pub fn enum_to_activation(activation_enum: ActivationEnum) -> Box<dyn Activation
         ActivationEnum::ReLU => Box::new(ReLU),
         ActivationEnum::Sigmoid => Box::new(Sigmoid),
         ActivationEnum::Sign => Box::new(Sign),
+        ActivationEnum::Softmax => Box::new(Softmax),
         ActivationEnum::TanH => Box::new(Tanh),
     }
 }
 
-pub fn string_to_activation(string: &str) -> Box<dyn Activation> {
-    match string {
+pub fn str_to_activation(string: &str) -> Box<dyn Activation> {
+    match string.to_lowercase().as_str() {
         "heaviside" => Box::new(Heaviside),
         "identity" => Box::new(Identity),
         "logistic" => Box::new(Logistic),
         "relu" => Box::new(ReLU),
         "sigmoid" => Box::new(Sigmoid),
         "sign" => Box::new(Sign),
+        "softmax" => Box::new(Softmax),
         "tanh" => Box::new(Tanh),
         _ => panic!("Not a supported activation function."),
     }

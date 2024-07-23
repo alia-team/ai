@@ -1,4 +1,5 @@
 pub mod activation;
+pub mod cnn_interop;
 pub mod conv2d;
 pub mod data;
 pub mod data_processing;

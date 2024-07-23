@@ -4,8 +4,17 @@ use rand_distr::{Distribution, Normal};
 
 pub enum WeightsInit {
     He,
-    Xavier,
     NormalizedXavier,
+    Xavier,
+}
+
+pub fn str_to_weights_init(str: &str) -> WeightsInit {
+    match str.to_lowercase().as_str() {
+        "he" => WeightsInit::He,
+        "normalized_xavier" => WeightsInit::NormalizedXavier,
+        "xavier" => WeightsInit::Xavier,
+        _ => panic!("Not a supported weights initialization."),
+    }
 }
 
 fn he(input_size: usize, output_size: usize) -> Array2<f64> {

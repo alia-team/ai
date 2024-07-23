@@ -1,7 +1,8 @@
 extern crate rand;
+use libc::c_char;
 use ndarray::{Array1, Array2};
 use rand::Rng;
-use std::ffi::{c_char, CStr};
+use std::ffi::CStr;
 
 /// Computes the outer product of two vectors
 pub fn outer(x: Array1<f64>, y: Array1<f64>) -> Array2<f64> {
