@@ -9,6 +9,12 @@ use libc::{c_char, c_double, c_longlong, size_t};
 use ndarray::Array1;
 use std::ffi::CString;
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences raw pointers.
+/// The caller must ensure that:
+/// - `dataset_path` and `optimizer` are valid, non-null pointers to null-terminated C strings
+/// - The returned pointer is freed using `free_cnn` to avoid memory leaks
 #[no_mangle]
 pub unsafe extern "C" fn new_cnn(
     dataset_path: *const c_char,
@@ -49,6 +55,12 @@ pub unsafe extern "C" fn new_cnn(
     Box::leak(Box::new(CNN::new(dataset, hyperparameters)))
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences raw pointers.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
+/// - `input_shape` is a valid pointer to an array of 3 `size_t` elements
 #[no_mangle]
 pub unsafe extern "C" fn set_input_shape(cnn_ptr: *mut CNN, input_shape: *const size_t) {
     let cnn: &mut CNN = unsafe { cnn_ptr.as_mut().expect("Null CNN pointer.") };
@@ -56,6 +68,11 @@ pub unsafe extern "C" fn set_input_shape(cnn_ptr: *mut CNN, input_shape: *const 
     cnn.set_input_shape(input_shape);
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences a raw pointer.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
 #[no_mangle]
 pub unsafe extern "C" fn add_conv2d_layer(
     cnn_ptr: *mut CNN,
@@ -66,12 +83,23 @@ pub unsafe extern "C" fn add_conv2d_layer(
     cnn.add_conv2d_layer(nfilters, kernel_size);
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences a raw pointer.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
 #[no_mangle]
 pub unsafe extern "C" fn add_maxpool2d_layer(cnn_ptr: *mut CNN, kernel_size: size_t) {
     let cnn: &mut CNN = unsafe { cnn_ptr.as_mut().expect("Null CNN pointer.") };
     cnn.add_maxpool2d_layer(kernel_size);
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences raw pointers.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
+/// - `activation` and `weights_init` are valid, non-null pointers to null-terminated C strings
 #[no_mangle]
 pub unsafe extern "C" fn add_dense_layer(
     cnn_ptr: *mut CNN,
@@ -87,12 +115,24 @@ pub unsafe extern "C" fn add_dense_layer(
     cnn.add_dense_layer(output_size, activation, dropout, weights_init);
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences a raw pointer.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
 #[no_mangle]
 pub unsafe extern "C" fn fit_cnn(cnn_ptr: *mut CNN) {
     let cnn: &mut CNN = unsafe { cnn_ptr.as_mut().expect("Null CNN pointer.") };
     cnn.fit();
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences raw pointers.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
+/// - `image_path` is a valid, non-null pointer to a null-terminated C string
+/// - The returned pointer must not be freed directly; it will be freed when the CNN is freed
 #[no_mangle]
 pub unsafe extern "C" fn predict_cnn(
     cnn_ptr: *mut CNN,
@@ -107,6 +147,12 @@ pub unsafe extern "C" fn predict_cnn(
     output_ptr
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences raw pointers.
+/// The caller must ensure that:
+/// - `cnn_ptr`, `path`, and `model_name` are valid, non-null pointers to null-terminated C strings
+/// - The returned pointer must be freed by the caller using an appropriate deallocation function
 #[no_mangle]
 pub unsafe extern "C" fn save_cnn(
     cnn_ptr: *mut CNN,
@@ -121,11 +167,24 @@ pub unsafe extern "C" fn save_cnn(
     full_path.into_raw()
 }
 
+/// # Safety
+///
+/// This function is unsafe because it dereferences a raw pointer.
+/// The caller must ensure that:
+/// - `model_path` is a valid, non-null pointer to a null-terminated C string
+/// - The returned pointer must be freed using `free_cnn` to avoid memory leaks
 #[no_mangle]
 pub unsafe extern "C" fn load_cnn(model_path: *const c_char) -> *mut CNN {
     Box::leak(Box::new(CNN::load(c_str_to_rust_str(model_path))))
 }
 
+/// # Safety
+///
+/// This function is unsafe because it deallocates a raw pointer.
+/// The caller must ensure that:
+/// - `cnn_ptr` is a valid pointer returned by `new_cnn` or `load_cnn`
+/// - `cnn_ptr` has not been freed before
+/// - `cnn_ptr` is not used after this function call
 #[no_mangle]
 pub unsafe extern "C" fn free_cnn(cnn_ptr: *mut CNN) {
     let _ = unsafe { Box::from_raw(cnn_ptr) };
