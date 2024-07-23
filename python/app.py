@@ -48,7 +48,7 @@ if uploaded_file is not None:
         print("loading model...")
         model = load_cnn('../models/cnn.json')
         print("predicting...")
-        prediction = model.predict('tmp_img/image')
+        prediction = model.predict('tmp_img/image.png')
         prediction = str(prediction)
 
     # elif option == 'Naive RBF':
