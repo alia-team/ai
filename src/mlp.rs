@@ -1,11 +1,18 @@
 extern crate libc;
 extern crate rand;
+use libc::{c_char, size_t};
 use rand::seq::SliceRandom;
 use rand::{thread_rng, Rng};
+use serde::{Deserialize, Serialize};
 use std::f64;
+use std::ffi::CString;
+use std::fs::File;
 use std::os::raw::c_double;
 
+use crate::util::c_str_to_rust_str;
+
 #[repr(C)]
+#[derive(Serialize, Deserialize)]
 pub struct MLP {
     neurons_per_layer: Vec<usize>,
     weights: Vec<Vec<Vec<f64>>>,
@@ -54,6 +61,21 @@ impl MLP {
             outputs,
             deltas,
         }
+    }
+
+    pub fn save(&self, path: &str, model_name: &str) -> String {
+        let full_path: String = format!("{}{}.json", path, model_name);
+        let model_file = std::fs::File::create(full_path.clone()).unwrap();
+        serde_json::to_writer(model_file, &self).unwrap();
+
+        full_path
+    }
+
+    pub fn load(model_file_name: &str) -> MLP {
+        let model_file = File::open(model_file_name).unwrap();
+        let model: MLP = serde_json::from_reader(model_file).unwrap();
+
+        model
     }
 
     /// # Safety
@@ -296,11 +318,55 @@ pub unsafe extern "C" fn mlp_train(
         inner_len,
     }
 }
+
+#[no_mangle]
+pub unsafe extern "C" fn mlp_neurons_per_layer(model_ptr: *mut MLP) -> *const size_t {
+    let mlp: &mut MLP = unsafe { model_ptr.as_mut().expect("Null model pointer.") };
+    mlp.neurons_per_layer.as_ptr()
+}
+
+#[no_mangle]
+pub unsafe extern "C" fn mlp_nlayers(model_ptr: *mut MLP) -> size_t {
+    let mlp: &mut MLP = unsafe { model_ptr.as_mut().expect("Null model pointer.") };
+    mlp.n_layers + 1
+}
+
 #[no_mangle]
 pub extern "C" fn free_train_result(result: TrainResult) {
     unsafe {
         libc::free(result.loss_values_ptr as *mut libc::c_void);
     }
+}
+
+/// # Safety
+///
+/// This function is unsafe because it dereferences raw pointers.
+/// The caller must ensure that:
+/// - `model_ptr`, `path`, and `model_name` are valid, non-null pointers to null-terminated C strings
+/// - The returned pointer must be freed by the caller using an appropriate deallocation function
+#[no_mangle]
+pub unsafe extern "C" fn mlp_save(
+    model_ptr: *mut MLP,
+    path: *const c_char,
+    model_name: *const c_char,
+) -> *const c_char {
+    let model = unsafe { model_ptr.as_mut().expect("Null model pointer.") };
+    let path: &str = c_str_to_rust_str(path);
+    let model_name: &str = c_str_to_rust_str(model_name);
+    let full_path: CString =
+        CString::new(model.save(path, model_name)).expect("Failed to convert Rust str to C str.");
+    full_path.into_raw()
+}
+
+/// # Safety
+///
+/// This function is unsafe because it dereferences a raw pointer.
+/// The caller must ensure that:
+/// - `model_path` is a valid, non-null pointer to a null-terminated C string
+/// - The returned pointer must be freed using `free_cnn` to avoid memory leaks
+#[no_mangle]
+pub unsafe extern "C" fn mlp_load(model_path: *const c_char) -> *mut MLP {
+    Box::leak(Box::new(MLP::load(c_str_to_rust_str(model_path))))
 }
 
 /// # Safety
