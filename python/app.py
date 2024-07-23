@@ -1,10 +1,10 @@
 import streamlit as st
 import os
 from PIL import Image
-from mlp import *
-#from cnn import *
-from naive_rbf import *
-from rbf import *
+# from mlp import *
+from cnn import *
+# from naive_rbf import *
+# from rbf import *
 import data_processing as dp
 
 def convert_to_palette_mode_file(image):
@@ -44,10 +44,13 @@ if uploaded_file is not None:
     #     model = MLP()
     #     model.load_model('models/mlp')
     #     prediction = model.predict(img_vector)
-    # elif option == 'CNN':
-    #     model = CNN()
-    #     model.load_model('models/cnn')
-    #     prediction = model.predict(img_vector)
+    if option == 'CNN':
+        print("loading model...")
+        model = load_cnn('../models/cnn.json')
+        print("predicting...")
+        prediction = model.predict('tmp_img/image')
+        prediction = str(prediction)
+
     # elif option == 'Naive RBF':
     #     model = NaiveRBF()
     #     model.load_model('models/naive_rbf')
@@ -66,7 +69,7 @@ if uploaded_file is not None:
 
     st.write('Done')
 
-    # st.write(f'Prediction: {prediction}')
+    st.write(f'Prediction: {prediction}')
 
 
 
