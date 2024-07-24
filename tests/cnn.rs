@@ -1,10 +1,9 @@
 use ai::activation::*;
-use ai::data::{load_image, load_image_dataset, Dataset1D, Dataset3D};
+use ai::data::{load_image_dataset, Dataset1D, Dataset3D};
 use ai::model::*;
 use ai::optimizer::Optimizer;
 use ai::weights_init::WeightsInit;
-use ndarray::{array, Array1, Array3};
-use std::path::Path;
+use ndarray::{array, Array1};
 
 // WARNING: Comment the alia test case before push: the repo doesn't contain the required dataset.
 /*
@@ -25,17 +24,16 @@ fn alia() {
     };
 
     println!("Building CNN...");
-    let mut cnn: CNN = CNN::new(dataset, hyperparameters);
-    cnn.set_input_shape(vec![100, 100, 3]);
+    let mut cnn: CNN = CNN::new(hyperparameters);
+    cnn.set_input_shape(vec![100, 100, 1]);
     cnn.add_conv2d_layer(8, 3);
     cnn.add_maxpool2d_layer(2);
-    cnn.add_dense_layer(128, Box::new(ReLU), Some(0.25), WeightsInit::He);
-    cnn.add_dense_layer(64, Box::new(ReLU), Some(0.25), WeightsInit::He);
+    cnn.add_dense_layer(128, Box::new(ReLU), Some(0.1), WeightsInit::He);
     cnn.add_dense_layer(3, Box::new(Softmax), None, WeightsInit::Xavier);
     println!("CNN built.");
 
     println!("Fitting...");
-    cnn.fit();
+    cnn.fit(dataset);
     println!("Fitting done.");
 
     println!("Saving model...");
@@ -49,8 +47,7 @@ fn alia() {
     println!("Model loaded.");
     println!("Predicting... It should predicts a Phidippus.");
     let image_path: &str = "dataset/phidippus/835255150-388.png";
-    let input: Array3<f64> = load_image(&Path::new(image_path)).expect("Image not found.");
-    let output: Array1<f64> = loaded_model.predict(input);
+    let output: Array1<f64> = loaded_model.predict(image_path);
 
     // Get predicted class name
     let max_output: usize = output
@@ -97,13 +94,13 @@ fn xor() {
     };
 
     println!("Building MLP...");
-    let mut mlp: MLP = MLP::new(dataset, input_size, hyperparameters);
+    let mut mlp: MLP = MLP::new(input_size, hyperparameters);
     mlp.add_layer(2, Box::new(Sigmoid), None, WeightsInit::Xavier);
     mlp.add_layer(4, Box::new(Sigmoid), None, WeightsInit::Xavier);
     mlp.add_layer(1, Box::new(Sigmoid), None, WeightsInit::Xavier);
     println!("MLP built.");
 
     println!("Fitting...");
-    mlp.fit();
+    mlp.fit(dataset);
     println!("Fitting done.");
 }

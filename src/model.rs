@@ -32,7 +32,6 @@ impl Default for Hyperparameters {
 pub struct MLP {
     layers: Vec<Dense>,
     layer_order: Vec<String>,
-    data: Dataset1D,
     minibatch_size: usize,
     creation_time: SystemTime,
     training_history: Vec<f64>,
@@ -44,13 +43,12 @@ pub struct MLP {
 }
 
 impl MLP {
-    pub fn new(data: Dataset1D, input_size: usize, params: Hyperparameters) -> Self {
+    pub fn new(input_size: usize, params: Hyperparameters) -> Self {
         let creation_time: SystemTime = SystemTime::now();
 
         let mlp: MLP = MLP {
             layers: vec![],
             layer_order: vec![],
-            data,
             minibatch_size: params.batch_size,
             creation_time,
             training_history: vec![],
@@ -142,10 +140,10 @@ impl MLP {
         (max_idx == label) as u8 as f64
     }
 
-    pub fn fit(&mut self) {
+    pub fn fit(&mut self, dataset: Dataset1D) {
         for epoch in 0..self.epochs {
             let progress_bar: ProgressBar =
-                ProgressBar::new((self.data.training_size / self.minibatch_size) as u64);
+                ProgressBar::new((dataset.training_size / self.minibatch_size) as u64);
             progress_bar.set_style(
                 ProgressStyle::default_bar()
                     .template(&format!(
@@ -158,9 +156,9 @@ impl MLP {
             );
 
             let mut avg_acc = 0.0;
-            for i in 0..self.data.training_size {
-                let (sample, label) = self.data.get_random_training_sample().unwrap();
-                let label = *self.data.classes.get(&label).unwrap();
+            for i in 0..dataset.training_size {
+                let (sample, label) = dataset.get_random_training_sample().unwrap();
+                let label = *dataset.classes.get(&label).unwrap();
                 self.forward(sample, true);
                 self.backward(label, true);
 
@@ -173,23 +171,23 @@ impl MLP {
                 }
             }
 
-            avg_acc /= self.data.training_size as f64;
-            if self.data.testing_size == 0 {
+            avg_acc /= dataset.training_size as f64;
+            if dataset.testing_size == 0 {
                 progress_bar.finish_with_message(format!("{:.1}%", avg_acc * 100.0));
             } else {
                 progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc * 100.0));
 
                 // Testing
                 let mut avg_test_acc = 0.0;
-                for _i in 0..self.data.testing_size {
-                    let (image, label) = self.data.get_random_testing_sample().unwrap();
-                    let label = *self.data.classes.get(&label).unwrap();
+                for _i in 0..dataset.testing_size {
+                    let (image, label) = dataset.get_random_testing_sample().unwrap();
+                    let label = *dataset.classes.get(&label).unwrap();
                     self.forward(image, false);
 
                     avg_test_acc += self.get_accuracy(label);
                 }
 
-                avg_test_acc /= self.data.testing_size as f64;
+                avg_test_acc /= dataset.testing_size as f64;
                 progress_bar.finish_with_message(format!(
                     "{:.1}% - Test accuracy: {:.1}%",
                     avg_acc * 100.0,
@@ -232,7 +230,6 @@ impl MLP {
 pub struct CNN {
     layers: Vec<LayerType>,
     layer_order: Vec<String>,
-    data: Dataset3D,
     minibatch_size: usize,
     creation_time: SystemTime,
     training_history: Vec<f64>,
@@ -244,13 +241,12 @@ pub struct CNN {
 }
 
 impl CNN {
-    pub fn new(data: Dataset3D, params: Hyperparameters) -> CNN {
+    pub fn new(params: Hyperparameters) -> CNN {
         let creation_time: SystemTime = SystemTime::now();
 
         let cnn: CNN = CNN {
             layers: vec![],
             layer_order: vec![],
-            data,
             minibatch_size: params.batch_size,
             creation_time,
             training_history: vec![],
@@ -429,10 +425,10 @@ impl CNN {
         (max_idx == label) as u8 as f64
     }
 
-    pub fn fit(&mut self) {
+    pub fn fit(&mut self, dataset: Dataset3D) {
         for epoch in 0..self.epochs {
             let progress_bar: ProgressBar =
-                ProgressBar::new((self.data.training_size / self.minibatch_size) as u64);
+                ProgressBar::new((dataset.training_size / self.minibatch_size) as u64);
             progress_bar.set_style(
                 ProgressStyle::default_bar()
                     .template(&format!(
@@ -445,9 +441,9 @@ impl CNN {
             );
 
             let mut avg_acc = 0.0;
-            for i in 0..self.data.training_size {
-                let (image, label) = self.data.get_random_sample().unwrap();
-                let label = *self.data.classes.get(&label).unwrap();
+            for i in 0..dataset.training_size {
+                let (image, label) = dataset.get_random_sample().unwrap();
+                let label = *dataset.classes.get(&label).unwrap();
                 self.forward(image, true);
                 self.backward(label, true);
 
@@ -460,20 +456,20 @@ impl CNN {
                 }
             }
 
-            avg_acc /= self.data.training_size as f64;
+            avg_acc /= dataset.training_size as f64;
             progress_bar.set_message(format!("{:.1}% - Testing...", avg_acc * 100.0));
 
             // Testing
             let mut avg_test_acc = 0.0;
-            for _i in 0..self.data.testing_size {
-                let (image, label) = self.data.get_random_test_sample().unwrap();
-                let label = *self.data.classes.get(&label).unwrap();
+            for _i in 0..dataset.testing_size {
+                let (image, label) = dataset.get_random_test_sample().unwrap();
+                let label = *dataset.classes.get(&label).unwrap();
                 self.forward(image, false);
 
                 avg_test_acc += self.get_accuracy(label);
             }
 
-            avg_test_acc /= self.data.testing_size as f64;
+            avg_test_acc /= dataset.testing_size as f64;
             progress_bar.finish_with_message(format!(
                 "{:.1}% - Test accuracy: {:.1}%",
                 avg_acc * 100.0,

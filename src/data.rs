@@ -193,6 +193,11 @@ where
     let training_size = training_samples.len();
     let testing_size = testing_samples.len();
 
+    println!(
+        "Loaded {} training images and {} testing images.",
+        training_size, testing_size
+    );
+
     Ok(Dataset3D {
         training_samples,
         training_targets,
