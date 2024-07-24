@@ -5,6 +5,8 @@ import platform
 import matplotlib.pyplot as plt
 from sklearn.model_selection import train_test_split
 from data_processing import get_all_images_in_folder
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+from PIL import Image
 
 
 # Determine the correct shared library filename based on the operating system
@@ -187,6 +189,12 @@ def load_mlp(model_path: str) -> MLP:
     return mlp
 
 if __name__ == "__main__":
+
+    def image_to_vector(image: Image):
+        image_array = np.array(image)
+        image_vector = image_array.flatten()
+        return image_vector
+    
     # Example usage:
     images = get_all_images_in_folder("../dataset")
     labels = []
@@ -198,7 +206,7 @@ if __name__ == "__main__":
             inputs.append(np.ctypeslib.as_array(image_vector, (100 * 100 * 1,)))
 
 
-    npl = (100 * 100 * 1, 5, 3)
+    npl = (100 * 100 * 1, 3, 3, 3)
     mlp = MLP(npl)
     mlp.init()
 
@@ -260,16 +268,50 @@ if __name__ == "__main__":
 
     training_inputs = (training_inputs - x_train_mean) / x_train_std
     testing_inputs = (testing_inputs - x_train_mean) / x_train_std
+    print(x_train_std)
 
-    print("Training...")
-    res = mlp.train(
-        training_inputs,
-        training_labels,
-        testing_inputs,
-        testing_labels,
-        0.01,
-        1000,
-        True,
-    )
-    print("Saving model...")
-    full_path: str = mlp.save("../models/", "mlp")
+    # print("Training...")
+    # res = mlp.train(
+    #     training_inputs,
+    #     training_labels,
+    #     testing_inputs,
+    #     testing_labels,
+    #     0.01,
+    #     1000,
+    #     True,
+    # )
+    # print("Saving model...")
+    # full_path: str = mlp.save("../models/", "mlp")
+
+    # load the model
+    print("Loading model...")
+    mlp = load_mlp("../models/mlp_best.json")
+
+    # Predict
+    print("Predicting...")
+    print(testing_inputs[0])
+    prediction = mlp.predict(testing_inputs[0], True)
+    print(prediction, "expected:", testing_labels[0])
+
+
+
+    # Prédire pour chaque test input
+    predictions = np.array([mlp.predict(testing_input, True) for testing_input in testing_inputs])
+
+    cm = confusion_matrix(np.argmax(testing_labels, axis=1), np.argmax(predictions, axis=1))
+
+    # Afficher la matrice de confusion
+    disp = ConfusionMatrixDisplay(confusion_matrix=cm)
+    disp.plot(cmap=plt.cm.Blues)
+    plt.show()
+    print("predict image")
+
+
+    inputs = image_to_vector(Image.open("tmp_img/image.png"))
+    image_mean = np.mean(inputs)
+    image_std = np.std(inputs)
+    print("std", image_std)
+    img_input = (inputs - image_mean) / image_std
+    print(img_input)
+    p = mlp.predict(img_input[0], True)
+    print(p)
