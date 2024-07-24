@@ -43,6 +43,7 @@ if uploaded_file is not None:
         inputs = [(i - image_mean) / image_std for i in inputs]
         prediction = model.predict(inputs, True)
 
+
     elif option == 'CNN':
         st.write("Loading model...")
         model = load_cnn('../models/cnn_240.json')
@@ -50,6 +51,7 @@ if uploaded_file is not None:
         st.write("Predicting...")
         if not os.path.exists('tmp_img'):
             os.makedirs('tmp_img')
+
         prediction = model.predict('tmp_img/image.png')
 
     # elif option == 'Naive RBF':
@@ -68,8 +70,10 @@ if uploaded_file is not None:
     #     st.write("Predicting...")
     #     prediction = model.predict(img_vector)
 
-    # os.remove('tmp_img/image.png')
+
+    os.remove('tmp_img/image.png')
     print(prediction)
+
     max_index = prediction.index(max(prediction))
 
     if max_index == 0:
@@ -80,5 +84,6 @@ if uploaded_file is not None:
         prediction = 'Tegenaria'
     else:
         prediction = 'Error during prediction.'
+
 
     st.write(f'Prediction: {prediction}')

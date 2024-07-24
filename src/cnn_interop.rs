@@ -17,9 +17,6 @@ use std::ffi::CString;
 /// - The returned pointer is freed using `free_cnn` to avoid memory leaks
 #[no_mangle]
 pub unsafe extern "C" fn new_cnn(
-    dataset_path: *const c_char,
-    train_ratio: c_double,
-    image_per_class: c_longlong,
     batch_size: size_t,
     epochs: size_t,
     optimizer: *const c_char,
@@ -27,15 +24,6 @@ pub unsafe extern "C" fn new_cnn(
     optimizer_param2: c_double,
     optimizer_param3: c_double,
 ) -> *mut CNN {
-    // Load dataset
-    let path: &str = c_str_to_rust_str(dataset_path);
-    let image_per_class: Option<usize> = match image_per_class < 0 {
-        true => None,
-        false => Some(image_per_class as usize),
-    };
-    let dataset: Dataset3D = load_image_dataset(path, train_ratio, image_per_class)
-        .expect("Failed to load image dataset.");
-
     // Setup optimizer
     let optimizer_str: &str = c_str_to_rust_str(optimizer);
     let optimizer: Optimizer = str_to_optmizer(
@@ -52,7 +40,7 @@ pub unsafe extern "C" fn new_cnn(
         optimizer,
     };
 
-    Box::leak(Box::new(CNN::new(dataset, hyperparameters)))
+    Box::leak(Box::new(CNN::new(hyperparameters)))
 }
 
 /// # Safety
@@ -121,9 +109,24 @@ pub unsafe extern "C" fn add_dense_layer(
 /// The caller must ensure that:
 /// - `cnn_ptr` is a valid, non-null pointer to a CNN struct
 #[no_mangle]
-pub unsafe extern "C" fn fit_cnn(cnn_ptr: *mut CNN) {
+pub unsafe extern "C" fn fit_cnn(
+    cnn_ptr: *mut CNN,
+    dataset_path: *const c_char,
+    train_ratio: c_double,
+    image_per_class: c_longlong,
+) {
     let cnn: &mut CNN = unsafe { cnn_ptr.as_mut().expect("Null CNN pointer.") };
-    cnn.fit();
+
+    // Load dataset
+    let path: &str = c_str_to_rust_str(dataset_path);
+    let image_per_class: Option<usize> = match image_per_class < 0 {
+        true => None,
+        false => Some(image_per_class as usize),
+    };
+    let dataset: Dataset3D = load_image_dataset(path, train_ratio, image_per_class)
+        .expect("Failed to load image dataset.");
+
+    cnn.fit(dataset);
 }
 
 /// # Safety
