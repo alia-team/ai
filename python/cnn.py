@@ -17,9 +17,6 @@ lib = CDLL(f"../target/release/{lib_filename}")
 
 
 lib.new_cnn.argtypes = [
-    c_char_p,   # dataset_path
-    c_double,   # train_ratio
-    c_longlong, # image_per_class
     c_size_t,   # batch_size
     c_size_t,   # epochs
     c_char_p,   # optimizer
@@ -58,7 +55,10 @@ lib.add_dense_layer.argtypes = [
 lib.add_dense_layer.restype = None
 
 lib.fit_cnn.argtypes = [
-    c_void_p # cnn_ptr
+    c_void_p, # cnn_ptr
+    c_char_p,   # dataset_path
+    c_double,   # train_ratio
+    c_longlong, # image_per_class
 ]
 lib.fit_cnn.restype = None
 
@@ -92,9 +92,6 @@ class CNN:
 
     def setup(
         self,
-        dataset_path: str,
-        train_ratio: float,
-        image_per_class: int,
         batch_size: int,
         epochs: int,
         optimizer: str,
@@ -102,13 +99,8 @@ class CNN:
         optimizer_param2: float,
         optimizer_param3: float
     ) -> None:
-        dataset_path_c_str: bytes = dataset_path.encode("utf-8")
         optimizer_c_str: bytes = optimizer.encode("utf-8")
-
         self.model = lib.new_cnn(
-            dataset_path_c_str,
-            train_ratio,
-            image_per_class,
             batch_size,
             epochs,
             optimizer_c_str,
@@ -133,8 +125,19 @@ class CNN:
         weights_init_c_str: bytes = weights_init.encode("utf-8")
         lib.add_dense_layer(self.model, output_size, activation_c_str, dropout, weights_init_c_str)
 
-    def fit(self) -> None:
-        lib.fit_cnn(self.model)
+    def fit(
+        self,
+        dataset_path: str,
+        train_ratio: float,
+        image_per_class: int,
+    ) -> None:
+        dataset_path_c_str: bytes = dataset_path.encode("utf-8")
+        lib.fit_cnn(
+            self.model,
+            dataset_path_c_str,
+            train_ratio,
+            image_per_class
+        )
 
     def predict(self, image_path: str) -> list[float]:
         output = lib.predict_cnn(
@@ -163,9 +166,6 @@ def load_cnn(model_path: str) -> CNN:
 if __name__ == "__main__":
     print("Initializing CNN...")
     cnn = CNN()
-    dataset_path: str = "../dataset/"
-    train_ratio: float = 0.8
-    image_per_class: int = 333
     batch_size: int = 10
     epochs: int = 10
     optimizer: str = "adam"
@@ -173,9 +173,6 @@ if __name__ == "__main__":
     beta1: float = 0.9
     beta2: float = 0.9
     cnn.setup(
-        dataset_path,
-        train_ratio,
-        image_per_class,
         batch_size,
         epochs,
         optimizer,
@@ -187,13 +184,21 @@ if __name__ == "__main__":
     cnn.add_conv2d_layer(8, 3);
     cnn.add_maxpool2d_layer(2);
     cnn.add_dense_layer(128, "relu", 0.1, "he");
+    cnn.add_dense_layer(64, "relu", 0.1, "he");
     cnn.add_dense_layer(3, "softmax", 0., "xavier");
 
     print("Fitting...")
-    cnn.fit()
+    dataset_path: str = "../dataset/"
+    train_ratio: float = 0.8
+    image_per_class: int = 333
+    cnn.fit(
+        dataset_path,
+        train_ratio,
+        image_per_class,
+    )
 
     print("Saving model...")
-    full_path: str = cnn.save("../models/", "cnn_999")
+    full_path: str = cnn.save("../models/", "cnn_999_2dense")
     print("Freeing CNN...")
     cnn.free()
     print("Freed.")
