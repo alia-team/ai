@@ -46,6 +46,7 @@ impl Conv2D {
             for kd in 0..input_size.2 {
                 for ky in 0..kernel_size {
                     for kx in 0..kernel_size {
+                        // He weights initialization
                         kernels[[f, ky, kx, kd]] = normal.sample(&mut rand::thread_rng())
                             * (2.0 / (input_size.0.pow(2)) as f64).sqrt();
                     }

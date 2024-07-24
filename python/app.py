@@ -33,7 +33,7 @@ if uploaded_file is not None:
 
     if option == 'MLP':
         st.write("Loading model...")
-        model = load_mlp('../models/mlp_best.json')
+        model = load_mlp('../models/mlp.json')
 
         st.write("Predicting...")
         img = Image.open('tmp_img/image.png')
@@ -46,7 +46,7 @@ if uploaded_file is not None:
 
     elif option == 'CNN':
         st.write("Loading model...")
-        model = load_cnn('../models/cnn_240.json')
+        model = load_cnn('../models/best_cnn.json')
 
         st.write("Predicting...")
         if not os.path.exists('tmp_img'):
@@ -77,11 +77,11 @@ if uploaded_file is not None:
     max_index = prediction.index(max(prediction))
 
     if max_index == 0:
-        prediction = 'Avicularia\n safe but painful bite'
+        prediction = 'Avicularia. Safe but painful bite!'
     elif max_index == 1:
-        prediction = 'Phidippus\n safe'
+        prediction = 'Phidippus. Safe and very cute!'
     elif max_index == 2:
-        prediction = 'Tegenaria\n safe'
+        prediction = 'Tegenaria. Scary but safe.'
     else:
         prediction = 'Error during prediction.'
 
