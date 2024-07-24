@@ -1,4 +1,4 @@
-from ctypes import cast, string_at, c_char_p, c_double, c_longlong, c_size_t, c_void_p, CDLL, POINTER
+from ctypes import string_at, c_char_p, c_double, c_longlong, c_size_t, c_void_p, CDLL, POINTER
 import numpy as np
 import platform
 from util import c_array_to_list, list_to_c_array
@@ -165,7 +165,7 @@ if __name__ == "__main__":
     cnn = CNN()
     dataset_path: str = "../dataset/"
     train_ratio: float = 0.8
-    image_per_class: int = 100
+    image_per_class: int = 333
     batch_size: int = 10
     epochs: int = 10
     optimizer: str = "adam"
@@ -186,15 +186,14 @@ if __name__ == "__main__":
     cnn.set_input_shape([100, 100, 1]);
     cnn.add_conv2d_layer(8, 3);
     cnn.add_maxpool2d_layer(2);
-    cnn.add_dense_layer(128, "relu", 0.25, "he");
-    cnn.add_dense_layer(64, "relu", 0.25, "he");
+    cnn.add_dense_layer(128, "relu", 0.1, "he");
     cnn.add_dense_layer(3, "softmax", 0., "xavier");
 
     print("Fitting...")
     cnn.fit()
 
     print("Saving model...")
-    full_path: str = cnn.save("../models/", "python_240")
+    full_path: str = cnn.save("../models/", "cnn_999")
     print("Freeing CNN...")
     cnn.free()
     print("Freed.")
