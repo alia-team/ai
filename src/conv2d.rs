@@ -12,13 +12,13 @@ pub struct Conv2D {
     output: Array3<f64>,
     num_filters: usize,
     kernels: Array4<f64>,
-    kernel_changes: Array4<f64>,
+    gradients: Array4<f64>,
     optimizer: Optimizer4D,
 }
 
 impl Conv2D {
     pub fn zero(&mut self) {
-        self.kernel_changes = Array4::<f64>::zeros((
+        self.gradients = Array4::<f64>::zeros((
             self.num_filters,
             self.kernel_size,
             self.kernel_size,
@@ -41,6 +41,7 @@ impl Conv2D {
             Array4::<f64>::zeros((num_filters, kernel_size, kernel_size, input_size.2));
         let normal = Normal::new(0.0, 1.0).unwrap();
 
+        // Initialize kernels
         for f in 0..num_filters {
             for kd in 0..input_size.2 {
                 for ky in 0..kernel_size {
@@ -65,12 +66,7 @@ impl Conv2D {
             input: Array3::<f64>::zeros(input_size),
             num_filters,
             kernels,
-            kernel_changes: Array4::<f64>::zeros((
-                num_filters,
-                kernel_size,
-                kernel_size,
-                input_size.2,
-            )),
+            gradients: Array4::<f64>::zeros((num_filters, kernel_size, kernel_size, input_size.2)),
             optimizer,
         };
 
@@ -78,7 +74,10 @@ impl Conv2D {
     }
 
     pub fn forward(&mut self, input: Array3<f64>) -> Array3<f64> {
+        // Store the input for later use in backpropagation
         self.input = input;
+
+        // Iterate over each filter
         for f in 0..self.output_size.2 {
             let kernel_slice = self.kernels.slice(s![f, .., .., ..]);
             for y in 0..self.output_size.1 {
@@ -86,6 +85,8 @@ impl Conv2D {
                     let input_slice =
                         self.input
                             .slice(s![x..x + self.kernel_size, y..y + self.kernel_size, ..]);
+
+                    // Convolution + ReLU
                     self.output[[x, y, f]] = (&input_slice * &kernel_slice).sum().max(0.0);
                 }
             }
@@ -108,6 +109,7 @@ impl Conv2D {
         for f in 0..out_z {
             for y in 0..out_y {
                 for x in 0..out_x {
+                    // Skip
                     if self.output[[x, y, f]] <= 0.0 {
                         continue;
                     }
@@ -125,11 +127,11 @@ impl Conv2D {
                         }
                     }
 
-                    // Update kernel_changes
+                    // Update gradients
                     for kx in 0..(x_end - x) {
                         for ky in 0..(y_end - y) {
                             for kz in 0..in_z {
-                                self.kernel_changes[[f, kx, ky, kz]] -=
+                                self.gradients[[f, kx, ky, kz]] -=
                                     error[[x, y, f]] * self.input[[x + kx, y + ky, kz]];
                             }
                         }
@@ -141,9 +143,9 @@ impl Conv2D {
     }
 
     pub fn update(&mut self, minibatch_size: usize) {
-        self.kernel_changes /= minibatch_size as f64;
-        self.kernels += &self.optimizer.weight_changes(&self.kernel_changes);
-        self.kernel_changes = Array4::<f64>::zeros((
+        self.gradients /= minibatch_size as f64;
+        self.kernels += &self.optimizer.weight_changes(&self.gradients);
+        self.gradients = Array4::<f64>::zeros((
             self.num_filters,
             self.kernel_size,
             self.kernel_size,
