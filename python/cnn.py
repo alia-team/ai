@@ -129,7 +129,7 @@ class CNN:
         self,
         dataset_path: str,
         train_ratio: float,
-        image_per_class: int,
+        image_per_class: int = -1,
     ) -> None:
         dataset_path_c_str: bytes = dataset_path.encode("utf-8")
         lib.fit_cnn(
@@ -166,12 +166,12 @@ def load_cnn(model_path: str) -> CNN:
 if __name__ == "__main__":
     print("Initializing CNN...")
     cnn = CNN()
-    batch_size: int = 10
+    batch_size: int = 30
     epochs: int = 10
     optimizer: str = "adam"
     learning_rate: float = 0.001
     beta1: float = 0.9
-    beta2: float = 0.9
+    beta2: float = 0.999
     cnn.setup(
         batch_size,
         epochs,
@@ -190,15 +190,13 @@ if __name__ == "__main__":
     print("Fitting...")
     dataset_path: str = "../dataset/"
     train_ratio: float = 0.8
-    image_per_class: int = 333
     cnn.fit(
         dataset_path,
         train_ratio,
-        image_per_class,
     )
 
     print("Saving model...")
-    full_path: str = cnn.save("../models/", "cnn_999_2dense")
+    full_path: str = cnn.save("../models/", "cnn_b2_999_btch_30")
     print("Freeing CNN...")
     cnn.free()
     print("Freed.")
