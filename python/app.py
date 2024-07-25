@@ -29,7 +29,7 @@ if uploaded_file is not None:
     standardized_img: Image = resized_img.convert('P', palette=Image.ADAPTIVE, colors=256)
     standardized_img.save('tmp_img/image.png')
 
-    prediction = [0.,0.,0.]
+    prediction = [-1.,-1.,-1.]
 
     if option == 'MLP':
         st.write("Loading model...")
@@ -74,16 +74,19 @@ if uploaded_file is not None:
     os.remove('tmp_img/image.png')
     print(prediction)
 
-    max_index = prediction.index(max(prediction))
-
-    if max_index == 0:
-        prediction = 'Avicularia. Safe but painful bite!'
-    elif max_index == 1:
-        prediction = 'Phidippus. Safe and very cute!'
-    elif max_index == 2:
-        prediction = 'Tegenaria. Scary but safe.'
+    if prediction[0] == -1:
+        st.write('Error during prediction.')
     else:
-        prediction = 'Error during prediction.'
+        max_index = prediction.index(max(prediction))
+
+        if max_index == 0:
+            prediction = 'Avicularia. Safe but painful bite!'
+        elif max_index == 1:
+            prediction = 'Phidippus. Safe and very cute!'
+        elif max_index == 2:
+            prediction = 'Tegenaria. Scary but safe.'
+        else:
+            prediction = 'Error during prediction.'
 
 
-    st.write(f'Prediction: {prediction}')
+        st.write(f'Prediction: {prediction}')
