@@ -14,50 +14,48 @@ else:
 
 lib = CDLL(f"../target/release/{lib_filename}")
 
-lib.new_rbf.argtypes = [
-    POINTER(c_size_t),
+lib.new_naive_rbf.argtypes = [
+    c_size_t,
     c_size_t,
     c_char_p,
     POINTER(POINTER(c_double)),
     c_size_t,
-    c_size_t,
-    POINTER(POINTER(c_double)),
-    c_size_t,
     c_size_t
 ]
-lib.new_rbf.restype = c_void_p
+lib.new_naive_rbf.restype = c_void_p
 
-lib.fit_rbf.argtypes = [
+lib.fit_naive_rbf.argtypes = [
     c_void_p,
     POINTER(POINTER(c_double)),
     c_size_t,
     c_size_t,
-    c_double,
-    c_size_t
+    POINTER(POINTER(c_double)),
+    c_size_t,
+    c_size_t,
+    c_double
 ]
-lib.fit_rbf.restype = None
+lib.fit_naive_rbf.restype = None
 
-lib.predict_rbf.argtypes = [
+lib.predict_naive_rbf.argtypes = [
     c_void_p,
     POINTER(c_double),
     c_size_t
 ]
-lib.predict_rbf.restype = POINTER(c_double)
+lib.predict_naive_rbf.restype = POINTER(c_double)
 
-lib.free_rbf.argtypes = [c_void_p]
-lib.free_rbf.restype = None
+lib.free_naive_rbf.argtypes = [c_void_p]
+lib.free_naive_rbf.restype = None
 
-
-class RBF:
+class NaiveRBF:
     def __init__(
         self,
-        neurons_per_layer: list[int],
+        input_neurons_count: int,
+        output_neurons_count: int,
         activation: str,
         training_dataset: list[list[float]],
         labels: list[list[float]]
     ) -> None:
-        self.neurons_per_layer: list[int] = neurons_per_layer
-        npl = (c_size_t * len(neurons_per_layer))(*neurons_per_layer)
+        self.neurons_per_layer: list[int] = [input_neurons_count, len(training_dataset), output_neurons_count];
 
         self.training_dataset_nrows: int = len(training_dataset)
         self.training_dataset_ncols: int = len(training_dataset[0])
@@ -77,32 +75,32 @@ class RBF:
 
         activation_c_str = activation.encode("utf-8")
 
-        self.model = lib.new_rbf(
-            npl,
-            len(neurons_per_layer),
+        self.model = lib.new_naive_rbf(
+            input_neurons_count,
+            output_neurons_count,
             activation_c_str,
+            self.training_dataset,
+            self.training_dataset_nrows,
+            self.training_dataset_ncols
+        )
+
+    def fit(self, gamma: float) -> None:
+        lib.fit_naive_rbf(
+            self.model,
             self.training_dataset,
             self.training_dataset_nrows,
             self.training_dataset_ncols,
             self.labels,
             self.labels_nrows,
-            self.labels_ncols
-        )
-
-    def fit(self, gamma: float, max_iterations: int) -> None:
-        lib.fit_rbf(
-            self.model,
-            self.training_dataset,
-            self.training_dataset_nrows,
-            self.training_dataset_ncols,
-            gamma,
-            max_iterations
+            self.labels_ncols,
+            gamma
         )
 
     def predict(self, input: list[float]) -> list[float]:
         ctypes_input = np.ctypeslib.as_ctypes(np.array(input, dtype=np.float64))
-        output_ptr = lib.predict_rbf(self.model, ctypes_input, len(input))
-        return [output_ptr[i] for i in range(self.neurons_per_layer[2])]
+
+        ctypes_output = lib.predict_naive_rbf(self.model, ctypes_input, len(input))
+        return [ctypes_output[i] for i in range(self.neurons_per_layer[2])]
 
     def __del__(self) -> None:
-        lib.free_rbf(self.model)
+        lib.free_naive_rbf(self.model)

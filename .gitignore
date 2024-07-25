@@ -9,5 +9,13 @@ target
 .vscode
 
 Cargo.lock
+<<<<<<< HEAD
+dataset/
+datatest/
+tmp_img/
+test_images/
+models/
+=======
 datatest/
 test_images/
+>>>>>>> main
